@@ -1,0 +1,36 @@
+{
+  "sources": [
+    {
+      "id": "src-001",
+      "name": "SEC EDGAR Filings",
+      "type": "federal",
+      "url": "https://www.sec.gov/cgi-bin/browse-edgar",
+      "enabled": true,
+      "last_checked": "2025-03-10T09:00:00Z"
+    },
+    {
+      "id": "src-002",
+      "name": "FINRA Rule Updates",
+      "type": "industry",
+      "url": "https://www.finra.org/rules-guidance",
+      "enabled": true,
+      "last_checked": "2025-03-12T14:30:00Z"
+    },
+    {
+      "id": "src-003",
+      "name": "GDPR Official Journal",
+      "type": "international",
+      "url": "https://eur-lex.europa.eu",
+      "enabled": true,
+      "last_checked": "2025-03-08T11:00:00Z"
+    },
+    {
+      "id": "src-004",
+      "name": "State Banking Regulator",
+      "type": "state",
+      "url": "https://example.gov/banking-regulations",
+      "enabled": false,
+      "last_checked": null
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "compliance_documents": [
+    {
+      "id": "doc-001",
+      "requirement_id": "req-001",
+      "regulation_id": "REG-SEC-2024-15",
+      "document_name": "Pre-Trade Risk Controls Policy",
+      "status": "compliant",
+      "last_reviewed": "2025-02-15",
+      "evidence": "Implemented in trading platform v3.2 with configurable limits"
+    },
+    {
+      "id": "doc-002",
+      "requirement_id": "req-002",
+      "regulation_id": "REG-SEC-2024-15",
+      "document_name": "Risk Override Audit Log",
+      "status": "compliant",
+      "last_reviewed": "2025-02-20",
+      "evidence": "Splunk integration captures all overrides with user ID and timestamp"
+    },
+    {
+      "id": "doc-003",
+      "requirement_id": "req-003",
+      "regulation_id": "REG-FINRA-4370",
+      "document_name": "Business Continuity Plan",
+      "status": "partial",
+      "last_reviewed": "2024-11-01",
+      "evidence": "BCP exists but annual test not yet completed for 2025"
+    },
+    {
+      "id": "doc-004",
+      "requirement_id": "req-004",
+      "regulation_id": "REG-FINRA-4370",
+      "document_name": "Backup and Recovery Procedures",
+      "status": "compliant",
+      "last_reviewed": "2025-01-10",
+      "evidence": "Daily backups to off-site facility with 30-day retention"
+    },
+    {
+      "id": "doc-005",
+      "requirement_id": "req-005",
+      "regulation_id": "REG-GDPR-ART32",
+      "document_name": "Data Encryption Standards",
+      "status": "compliant",
+      "last_reviewed": "2025-03-01",
+      "evidence": "AES-256 at rest, TLS 1.3 in transit"
+    }
+  ],
+  "missing_requirements": ["req-006"]
+}

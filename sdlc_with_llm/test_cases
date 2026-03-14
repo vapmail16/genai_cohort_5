@@ -1,0 +1,368 @@
+Test Cases for Compliance & Audit Copilot
+
+Below are test cases derived from the updated user stories. They cover primary functionality, normal scenarios, and failure or edge scenarios, while staying within the defined scope only.
+
+User Story 1: Monitor Regulatory Updates
+
+User Story
+As a Compliance Officer, I want the system to monitor relevant regulatory sources, so that I can stay informed about new or modified compliance requirements.
+
+Test Case 1.1 — Successful retrieval of regulatory updates
+
+Objective: Validate that the system retrieves updates from configured regulatory sources.
+
+Preconditions:
+
+Regulatory sources are configured in the system.
+
+At least one source contains a new or modified regulatory update.
+
+Steps:
+
+Start the regulatory monitoring process.
+
+Check the list of retrieved updates.
+
+Expected Result:
+
+The system retrieves updates from configured regulatory sources.
+
+New or modified regulatory requirements are identified and displayed for review.
+
+Test Case 1.2 — No new regulatory updates available
+
+Objective: Validate system behavior when no new updates are present.
+
+Preconditions:
+
+Regulatory sources are configured.
+
+No new or modified updates exist in the sources.
+
+Steps:
+
+Start the regulatory monitoring process.
+
+Review the monitoring results.
+
+Expected Result:
+
+The system completes monitoring successfully.
+
+No new updates are displayed.
+
+The result clearly indicates that no new or modified regulatory requirements were found.
+
+Test Case 1.3 — Configured regulatory source unavailable
+
+Objective: Validate system behavior when a configured source cannot be reached.
+
+Preconditions:
+
+At least one regulatory source is configured but unavailable.
+
+Steps:
+
+Start the regulatory monitoring process.
+
+Review the monitoring results.
+
+Expected Result:
+
+The system does not retrieve updates from the unavailable source.
+
+The system indicates that the source could not be accessed.
+
+Available sources, if any, are still processed.
+
+User Story 2: Review Regulatory Changes
+
+User Story
+As a Compliance Analyst, I want to review identified regulatory updates, so that I can understand which regulatory changes may impact our organization.
+
+Test Case 2.1 — View structured regulatory update details
+
+Objective: Validate that identified updates are presented in a structured format.
+
+Preconditions:
+
+At least one regulatory update has been identified by the system.
+
+Steps:
+
+Open the list of identified regulatory updates.
+
+Select one regulatory update for review.
+
+Expected Result:
+
+The selected update is shown in a structured format.
+
+The details clearly indicate the relevant regulation being updated.
+
+Test Case 2.2 — Review multiple regulatory updates
+
+Objective: Validate that the analyst can review more than one update.
+
+Preconditions:
+
+Multiple regulatory updates have been identified.
+
+Steps:
+
+Open the list of identified regulatory updates.
+
+Review each update one by one.
+
+Expected Result:
+
+Each regulatory update can be viewed separately.
+
+Each update shows its relevant regulation clearly.
+
+Test Case 2.3 — Attempt to review updates when none exist
+
+Objective: Validate system behavior when no updates are available for review.
+
+Preconditions:
+
+No regulatory updates have been identified.
+
+Steps:
+
+Open the regulatory updates section.
+
+Expected Result:
+
+The system shows that no regulatory updates are available for review.
+
+No incomplete or blank update details are displayed.
+
+User Story 3: Generate Compliance Reports
+
+User Story
+As a Compliance Officer, I want the system to generate structured compliance reports, so that I can document the organization’s compliance status for audits.
+
+Test Case 3.1 — Successful compliance report generation
+
+Objective: Validate that the system generates a structured compliance report using available compliance information and applicable regulatory requirements.
+
+Preconditions:
+
+Compliance information is available.
+
+Applicable regulatory requirements are available.
+
+Steps:
+
+Trigger compliance report generation.
+
+Open the generated report.
+
+Expected Result:
+
+The system generates a structured compliance report.
+
+The report summarizes applicable regulations.
+
+The report includes the organization’s current compliance status.
+
+Test Case 3.2 — Generate report with limited compliance information
+
+Objective: Validate behavior when some compliance information is missing.
+
+Preconditions:
+
+Applicable regulatory requirements are available.
+
+Only partial compliance information is available.
+
+Steps:
+
+Trigger compliance report generation.
+
+Review the generated report.
+
+Expected Result:
+
+The system generates a structured report using available information.
+
+The report includes the current compliance status based on available data.
+
+Missing information is not falsely presented as complete.
+
+Test Case 3.3 — Attempt report generation with no available data
+
+Objective: Validate behavior when neither compliance information nor applicable regulatory requirements are available.
+
+Preconditions:
+
+No compliance information is available.
+
+No applicable regulatory requirements are available.
+
+Steps:
+
+Trigger compliance report generation.
+
+Expected Result:
+
+The system does not produce a misleading report with invented content.
+
+The system indicates that report generation cannot be completed due to unavailable input data.
+
+User Story 4: Detect Compliance Gaps
+
+User Story
+As a Compliance Analyst, I want the system to identify potential compliance gaps, so that I can address areas where current documentation or processes may not meet regulatory requirements.
+
+Test Case 4.1 — Successful detection of compliance gaps
+
+Objective: Validate that the system flags areas where regulatory requirements do not match existing compliance documentation.
+
+Preconditions:
+
+Regulatory requirements are available.
+
+Compliance documentation is available.
+
+At least one mismatch exists.
+
+Steps:
+
+Trigger compliance gap detection.
+
+Review identified gaps.
+
+Expected Result:
+
+The system analyzes regulatory requirements and available compliance information.
+
+The system flags areas where requirements do not match compliance documentation.
+
+The compliance analyst can review the identified gaps.
+
+Test Case 4.2 — No compliance gaps found
+
+Objective: Validate behavior when compliance documentation matches regulatory requirements.
+
+Preconditions:
+
+Regulatory requirements are available.
+
+Compliance documentation is available.
+
+No mismatch exists.
+
+Steps:
+
+Trigger compliance gap detection.
+
+Review the result.
+
+Expected Result:
+
+The system completes the analysis successfully.
+
+No compliance gaps are flagged.
+
+The result clearly indicates that no gaps were found.
+
+Test Case 4.3 — Gap detection with missing compliance documentation
+
+Objective: Validate behavior when required compliance documentation is unavailable.
+
+Preconditions:
+
+Regulatory requirements are available.
+
+Compliance documentation is missing or incomplete.
+
+Steps:
+
+Trigger compliance gap detection.
+
+Review the result.
+
+Expected Result:
+
+The system analyzes available information only.
+
+The system flags mismatches only where comparison is possible.
+
+The result indicates that complete gap analysis may be limited due to missing documentation.
+
+User Story 5: Support Audit Preparation
+
+User Story
+As an Audit Manager, I want access to compliance reports and identified compliance gaps, so that I can prepare for internal or external compliance audits.
+
+Test Case 5.1 — Access compliance reports for audit preparation
+
+Objective: Validate that the audit manager can access generated compliance reports.
+
+Preconditions:
+
+At least one compliance report has been generated.
+
+Steps:
+
+Log in as Audit Manager.
+
+Open the compliance reports section.
+
+Select a report.
+
+Expected Result:
+
+The audit manager can access generated compliance reports.
+
+The selected report is available for review.
+
+Test Case 5.2 — Access identified compliance gaps for audit preparation
+
+Objective: Validate that the audit manager can review identified compliance gaps.
+
+Preconditions:
+
+Compliance gaps have been identified.
+
+Steps:
+
+Log in as Audit Manager.
+
+Open the compliance gaps section.
+
+Review the listed gaps.
+
+Expected Result:
+
+The audit manager can access identified compliance gaps.
+
+The identified gaps are available for review as supporting material for audit preparation.
+
+Test Case 5.3 — Audit manager attempts access when no reports or gaps exist
+
+Objective: Validate behavior when audit preparation materials are not available.
+
+Preconditions:
+
+No compliance reports have been generated.
+
+No compliance gaps have been identified.
+
+Steps:
+
+Log in as Audit Manager.
+
+Open the compliance reports section.
+
+Open the compliance gaps section.
+
+Expected Result:
+
+The system indicates that no compliance reports are available.
+
+The system indicates that no compliance gaps are available.
+
+No invalid or empty artifacts are shown as if they were valid outputs.

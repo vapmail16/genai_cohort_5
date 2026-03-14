@@ -1,0 +1,52 @@
+{
+  "requirements": [
+    {
+      "id": "req-001",
+      "regulation_id": "REG-SEC-2024-15",
+      "regulation_name": "SEC Rule 15c3-5",
+      "requirement_text": "Implement pre-trade risk controls with configurable limits for order size, position, and exposure.",
+      "category": "risk_management",
+      "effective_date": "2025-06-01"
+    },
+    {
+      "id": "req-002",
+      "regulation_id": "REG-SEC-2024-15",
+      "regulation_name": "SEC Rule 15c3-5",
+      "requirement_text": "Maintain audit trail of all risk control overrides with timestamp and user identification.",
+      "category": "audit_trail",
+      "effective_date": "2025-06-01"
+    },
+    {
+      "id": "req-003",
+      "regulation_id": "REG-FINRA-4370",
+      "regulation_name": "FINRA Rule 4370",
+      "requirement_text": "Document and test business continuity plan annually with recovery time objectives.",
+      "category": "business_continuity",
+      "effective_date": "2025-04-15"
+    },
+    {
+      "id": "req-004",
+      "regulation_id": "REG-FINRA-4370",
+      "regulation_name": "FINRA Rule 4370",
+      "requirement_text": "Identify critical systems and data backup procedures with off-site storage.",
+      "category": "disaster_recovery",
+      "effective_date": "2025-04-15"
+    },
+    {
+      "id": "req-005",
+      "regulation_id": "REG-GDPR-ART32",
+      "regulation_name": "GDPR Article 32",
+      "requirement_text": "Implement encryption of personal data at rest and in transit.",
+      "category": "data_protection",
+      "effective_date": "2025-01-01"
+    },
+    {
+      "id": "req-006",
+      "regulation_id": "REG-GDPR-ART32",
+      "regulation_name": "GDPR Article 32",
+      "requirement_text": "Ensure ongoing confidentiality, integrity, and availability of processing systems.",
+      "category": "security",
+      "effective_date": "2025-01-01"
+    }
+  ]
+}

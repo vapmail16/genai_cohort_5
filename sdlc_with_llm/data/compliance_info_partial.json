@@ -1,0 +1,14 @@
+{
+  "compliance_documents": [
+    {
+      "id": "doc-001",
+      "requirement_id": "req-001",
+      "regulation_id": "REG-SEC-2024-15",
+      "document_name": "Pre-Trade Risk Controls Policy",
+      "status": "compliant",
+      "last_reviewed": "2025-02-15",
+      "evidence": "Implemented in trading platform"
+    }
+  ],
+  "missing_requirements": ["req-002", "req-003", "req-004", "req-005", "req-006"]
+}

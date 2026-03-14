@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Compliance & Audit Copilot</h1>
+<p class="subtitle">Regulatory monitoring, compliance reports, and gap detection</p>
+
+<!-- Metrics Overview -->
+<div class="metrics">
+    <div class="metric">
+        <div class="metric-value">{{ updates_count }}</div>
+        <div class="metric-label">Regulatory Updates</div>
+    </div>
+    <div class="metric">
+        <div class="metric-value">{{ compliance_pct }}%</div>
+        <div class="metric-label">Compliance Rate</div>
+    </div>
+    <div class="metric">
+        <div class="metric-value">{{ gaps_count }}</div>
+        <div class="metric-label">Compliance Gaps</div>
+    </div>
+    <div class="metric">
+        <div class="metric-value">{{ total_requirements }}</div>
+        <div class="metric-label">Total Requirements</div>
+    </div>
+</div>
+
+<!-- Regulatory Updates -->
+<div class="section">
+    <h2>📋 Regulatory Updates</h2>
+    {% if unavailable_sources %}
+    <div class="alert alert-warning">
+        Unavailable sources: {{ unavailable_sources | join(', ') }}
+    </div>
+    {% endif %}
+    {% if updates %}
+        {% for u in updates %}
+        <div class="update-item">
+            <span class="badge badge-{{ u.status }}">{{ u.status | upper }}</span>
+            <strong>{{ u.regulation_name }}</strong>: {{ u.title }}<br>
+            <small class="muted">Effective: {{ u.effective_date }}</small>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="empty">No new or modified regulatory requirements found.</p>
+    {% endif %}
+</div>
+
+<!-- Compliance Report -->
+<div class="section">
+    <h2>📄 Compliance Report</h2>
+    {% if report.can_generate %}
+        <p><strong>Report ID:</strong> {{ report.id }}</p>
+        <p><strong>Generated:</strong> {{ report.generated_at }}</p>
+        <p><strong>Applicable regulations:</strong> {{ report.applicable_regulations | join(', ') }}</p>
+        <p>{{ report.summary }}</p>
+        <p><strong>Status breakdown:</strong> {{ compliant_count }} compliant, {{ partial_count }} partial, {{ missing_count }} missing</p>
+    {% else %}
+        <p class="empty">{{ report.summary }}</p>
+    {% endif %}
+</div>
+
+<!-- Compliance Gaps -->
+<div class="section">
+    <h2>🔍 Compliance Gaps</h2>
+    {% if limited_due_to_missing %}
+    <div class="alert alert-warning">{{ gaps_message }}</div>
+    {% endif %}
+    {% if gaps %}
+        {% for g in gaps %}
+        <div class="gap-item">
+            <span class="badge badge-{{ g.severity }}">{{ g.severity | upper }}</span>
+            <strong>{{ g.regulation_name }}</strong><br>
+            <small>Requirement: {{ g.requirement_text[:80] }}{% if g.requirement_text|length > 80 %}…{% endif %}</small><br>
+            <small>Gap: {{ g.gap_reason[:80] }}{% if g.gap_reason|length > 80 %}…{% endif %}</small>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="empty">{{ gaps_message or 'No compliance gaps found.' }}</p>
+    {% endif %}
+</div>
+{% endblock %}

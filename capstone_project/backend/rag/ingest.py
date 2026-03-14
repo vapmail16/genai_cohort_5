@@ -34,7 +34,7 @@ QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
 MODEL_PROVIDER = os.getenv("MODEL_PROVIDER", "openai")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
 COLLECTION_NAME = "it_support_kb"
-DOCS_DIR = Path(__file__).parent / "docs"
+DOCS_DIR = Path(__file__).parent.parent.parent / "docs" / "backend" / "rag" / "docs"
 
 
 def load_documents(docs_dir: Optional[str] = None) -> List[Document]:

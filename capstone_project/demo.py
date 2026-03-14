@@ -100,11 +100,12 @@ def test_create_ticket():
         "title": "VPN Connection Issues - Error 422",
         "description": "User is experiencing VPN error 422 when attempting to connect. Issue persists after following standard troubleshooting steps.",
         "priority": "HIGH",
-        "category": "VPN",
+        "category": "NETWORK",
         "user_email": "john.doe@acmecorp.com"
     }
 
     response = requests.post(f"{BASE_URL}/tickets", json=payload)
+    response.raise_for_status()
     data = response.json()
 
     print(f"Ticket ID: {data['id']}")

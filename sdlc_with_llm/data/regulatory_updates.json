@@ -1,0 +1,37 @@
+{
+  "updates": [
+    {
+      "id": "upd-001",
+      "source_id": "src-001",
+      "regulation_id": "REG-SEC-2024-15",
+      "regulation_name": "SEC Rule 15c3-5",
+      "title": "Risk Management Controls for Brokers",
+      "summary": "Amendment to risk management controls requiring enhanced pre-trade risk limits for algorithmic trading.",
+      "effective_date": "2025-06-01",
+      "status": "new",
+      "retrieved_at": "2025-03-12T10:15:00Z"
+    },
+    {
+      "id": "upd-002",
+      "source_id": "src-002",
+      "regulation_id": "REG-FINRA-4370",
+      "regulation_name": "FINRA Rule 4370",
+      "title": "Business Continuity Plan Requirements",
+      "summary": "Updated requirements for business continuity and disaster recovery documentation.",
+      "effective_date": "2025-04-15",
+      "status": "modified",
+      "retrieved_at": "2025-03-12T14:35:00Z"
+    },
+    {
+      "id": "upd-003",
+      "source_id": "src-003",
+      "regulation_id": "REG-GDPR-ART32",
+      "regulation_name": "GDPR Article 32",
+      "title": "Security of Processing - Technical Measures",
+      "summary": "Clarification on encryption and pseudonymization requirements for personal data.",
+      "effective_date": "2025-01-01",
+      "status": "modified",
+      "retrieved_at": "2025-03-08T11:30:00Z"
+    }
+  ]
+}
