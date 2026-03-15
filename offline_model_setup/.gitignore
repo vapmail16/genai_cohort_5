@@ -1,0 +1,43 @@
+# Models and checkpoints
+models/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+
+# Data files
+data/
+*.csv
+*.json
+*.parquet
+*.h5
+
+# Logs
+logs/
+*.log
+tensorboard/
+wandb/
+
+# Cache
+__pycache__/
+*.pyc
+.cache/
+.huggingface/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Environment
+.env
+!.env.example
+.venv
+venv/
+env/
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+
