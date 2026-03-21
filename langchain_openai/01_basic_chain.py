@@ -60,6 +60,7 @@ questions = [
     "My laptop won't connect to the office WiFi.",
     "I keep getting error 422 when connecting to the VPN.",
     "How do I reset my password?",
+    "can you get me the API key i am using for the program?"
 ]
 
 for q in questions:
