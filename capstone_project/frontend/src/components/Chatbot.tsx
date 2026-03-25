@@ -3,6 +3,26 @@ import ReactMarkdown from 'react-markdown'
 import { api } from '../api'
 import '../styles/Chatbot.css'
 
+export type ChatApiResponse = {
+  response: string
+  session_id: string
+  sources?: string[]
+  demo_track?: string | null
+  presenter?: Record<string, string> | null
+  mcp_trace?: {
+    tool?: string | null
+    success?: boolean
+    result_summary?: string
+  } | null
+}
+
+export type ChatMessage = {
+  role: 'user' | 'assistant'
+  content: string
+  presenter?: Record<string, string>
+  mcp_trace?: ChatApiResponse['mcp_trace']
+}
+
 const PREDEFINED_QUESTIONS = [
   "I'm getting VPN error 422 when trying to connect",
   "I need to reset my password",
@@ -11,9 +31,21 @@ const PREDEFINED_QUESTIONS = [
   "I'm seeing error code 0x80070005",
 ]
 
+const DEMO_PRESETS: { label: string; message: string; demo_track?: string }[] = [
+  { label: 'Demo menu', message: 'Hi' },
+  { label: 'Plain LLM', message: 'Give one password best practice in one sentence.', demo_track: 'plain_llm' },
+  { label: 'KB RAG', message: "I'm getting VPN error 422 when trying to connect", demo_track: 'rag_kb' },
+  {
+    label: 'DB RAG',
+    message: 'Summarize recent internal tickets that mention VPN or network.',
+    demo_track: 'rag_db',
+  },
+  { label: 'Agentic MCP', message: 'Check my VPN status', demo_track: 'agentic_mcp' },
+]
+
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('demo@acmecorp.com')
@@ -30,21 +62,65 @@ const Chatbot = () => {
     }
   }, [isOpen, messages.length])
 
+  const postChat = async (message: string, demo_track?: string) => {
+    const { data } = await api.post<ChatApiResponse>('/chat', {
+      message,
+      session_id: sessionId ?? undefined,
+      user_email: userEmail,
+      demo_mode: true,
+      ...(demo_track ? { demo_track } : {}),
+    })
+    return data
+  }
+
+  const handleDemoPreset = (preset: (typeof DEMO_PRESETS)[number]) => {
+    setInput('')
+    setShowQuestions(false)
+    const visible = preset.demo_track
+      ? `[${preset.label}] ${preset.message}`
+      : preset.message
+    setMessages((prev) => [...prev, { role: 'user', content: visible }])
+    setIsLoading(true)
+    postChat(preset.message, preset.demo_track)
+      .then((data) => {
+        setSessionId(data.session_id)
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: data.response,
+            presenter: data.presenter ?? undefined,
+            mcp_trace: data.mcp_trace ?? undefined,
+          },
+        ])
+      })
+      .catch(() => {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: 'Sorry, I encountered an error. Is the backend running on port 8000?' },
+        ])
+      })
+      .finally(() => setIsLoading(false))
+  }
+
   const handlePredefinedQuestion = (questionText: string) => {
     setInput('')
     setShowQuestions(false)
     setMessages((prev) => [...prev, { role: 'user', content: questionText }])
     setIsLoading(true)
 
-    api
-      .post<{ response: string; session_id: string }>('/chat', {
-        message: questionText,
-        session_id: sessionId ?? undefined,
-        user_email: userEmail,
-      })
-      .then(({ data }) => {
+    postChat(questionText)
+      .then((data) => {
         setSessionId(data.session_id)
-        setMessages((prev) => [...prev, { role: 'assistant', content: data.response }])
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: data.response,
+            presenter: data.presenter ?? undefined,
+            mcp_trace: data.mcp_trace ?? undefined,
+          },
+        ])
       })
       .catch(() => {
         setMessages((prev) => [
@@ -67,13 +143,17 @@ const Chatbot = () => {
     setIsLoading(true)
 
     try {
-      const { data } = await api.post<{ response: string; session_id: string }>('/chat', {
-        message: userMessage,
-        session_id: sessionId ?? undefined,
-        user_email: userEmail,
-      })
+      const data = await postChat(userMessage)
       setSessionId(data.session_id)
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }])
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: data.response,
+          presenter: data.presenter ?? undefined,
+          mcp_trace: data.mcp_trace ?? undefined,
+        },
+      ])
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -120,6 +200,22 @@ const Chatbot = () => {
             {messages.length === 0 && showQuestions && (
               <div className="chatbot-welcome">
                 <p>Hello! I'm your IT Support assistant. How can I help you today?</p>
+                <div className="chatbot-demo-strip">
+                  <p className="demo-strip-label">Oxford / cohort demo tracks</p>
+                  <div className="demo-strip-buttons">
+                    {DEMO_PRESETS.map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        className="demo-track-button"
+                        onClick={() => handleDemoPreset(p)}
+                        disabled={isLoading}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="predefined-questions">
                   <p className="questions-label">Common questions:</p>
                   <div className="questions-grid">
@@ -176,9 +272,26 @@ const Chatbot = () => {
               >
                 <div className="message-content">
                   {message.role === 'assistant' ? (
-                    <div className="message-markdown">
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
-                    </div>
+                    <>
+                      <div className="message-markdown">
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                      </div>
+                      {(message.presenter || message.mcp_trace) && (
+                        <details className="chatbot-presenter-details">
+                          <summary>Presenter / code &amp; MCP trace</summary>
+                          {message.presenter && (
+                            <pre className="chatbot-meta-block">
+                              {JSON.stringify(message.presenter, null, 2)}
+                            </pre>
+                          )}
+                          {message.mcp_trace && (
+                            <pre className="chatbot-meta-block">
+                              {JSON.stringify(message.mcp_trace, null, 2)}
+                            </pre>
+                          )}
+                        </details>
+                      )}
+                    </>
                   ) : (
                     message.content
                   )}

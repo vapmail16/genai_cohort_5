@@ -55,6 +55,25 @@
   animation: fadeInUp 0.8s ease-out 0.4s both;
 }
 
+.hero-teaching-btn {
+  margin-top: 28px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #312e81;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  animation: fadeInUp 0.8s ease-out 0.55s both;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.hero-teaching-btn:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

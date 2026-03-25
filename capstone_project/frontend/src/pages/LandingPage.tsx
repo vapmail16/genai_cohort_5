@@ -1,6 +1,10 @@
 import '../styles/LandingPage.css'
 
-const LandingPage = () => {
+type LandingPageProps = {
+  onOpenTeaching?: () => void
+}
+
+const LandingPage = ({ onOpenTeaching }: LandingPageProps) => {
   return (
     <div className="landing-page">
       <header className="hero">
@@ -10,6 +14,11 @@ const LandingPage = () => {
           <p className="hero-description">
             Diagnose issues, search the knowledge base, create tickets, and get AI-powered support
           </p>
+          {onOpenTeaching && (
+            <button type="button" className="hero-teaching-btn" onClick={onOpenTeaching}>
+              API basics lab
+            </button>
+          )}
         </div>
       </header>
 

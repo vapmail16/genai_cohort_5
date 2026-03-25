@@ -378,7 +378,20 @@ MIT License - GenAI Cohort 5 Capstone Project
 
 ## 🐛 Known Issues
 
-None yet - we're in the Red phase! Issues will be caught by tests. 😊
+### Issue log (operational)
+
+| Date | What went wrong | How to avoid next time |
+|------|-----------------|-------------------------|
+| 2026-03-24 | `fastapi.testclient.TestClient` failed with httpx 0.28 (`unexpected keyword argument 'app'` / ASGITransport sync context). | For teaching API tests, call the FastAPI handler directly with injected `db` + mock LLM instead of relying on Starlette TestClient + httpx edge cases. |
+| 2026-03-24 | `main.py` used `from database import` while pytest imports `backend.main`, causing `ModuleNotFoundError: database`. | Use `from backend.database import` (and `from backend.rag`) so `uvicorn backend.main:app` and pytest share the same import path from repo root. |
+| 2026-03-25 | Teaching UI used a separate dark theme instead of the capstone landing/chat look. | Reuse `LandingPage.css` patterns (`hero`, `agents-section`, `agent-card`, `cta-button`) and add only small overrides in `TeachingPipeline.css`. |
+| 2026-03-25 | DELETE success could not return `flow_steps` with HTTP 204 (no body). | Teaching DELETE returns **200 + JSON** with `flow_steps` and a note that RFC often uses 204 without a body. |
+| 2026-03-24 | API basics lab looked “washed out”: descriptions, deterministic path, and buttons used slate/grey text. | In `TeachingPipeline.css`, set readable body copy to `#111827` (hero, cards, flow summary/detail, arch controls, method badges); keep gradient primary buttons with white labels. |
+| 2026-03-25 | Main-chat demo plan included a fourth track (“RAG structured” over DB). | Superseded: **`rag_db`** is implemented (`backend/rag/db_retriever.py`, Qdrant `it_support_db`). Oxford may still **skip** that button live for a shorter story (`mcp/OXFORD_MCP_SESSION_PLAN.md`). |
+| 2026-03-25 | (log) | Main `/chat` demo shipped: `backend/chat_demo/` (`tracks`, `plain_llm`, `router`), `ChatRequest.demo_mode` / `demo_track`, `ChatResponse.presenter` / `mcp_trace`, `Chatbot.tsx` demo strip. |
+| 2026-03-25 | `TypeError: Router.__init__() got an unexpected keyword argument 'on_startup'` when starting uvicorn; pip also reported Starlette 1.x vs FastAPI 0.109. | **Pin `starlette>=0.35.0,<0.36.0`** next to `fastapi==0.109.0` in `requirements.txt`. After installing `mcp` or other packages, run `pip install -r backend/requirements.txt` to reconcile. The `_captured_signals` / partial import trace is a **secondary** uvicorn reload crash while imports fail. |
+| 2026-03-25 | Root `README.md` and `mcp/OXFORD_MCP_SESSION_PLAN.md` still referenced `mcp/sample documents/` after that folder was removed. | List actual `mcp/` files (PDF/PPTX/DOCX/HTML) in docs; grep for `sample documents` when pruning folders. |
+| 2026-03-25 | `ai_agents/langgraph_training_guide.md` used a fixed cohort3 path and `ai_agents_demo` (folder no longer in repo). | Use a generic lab directory (e.g. `~/langgraph_lab`) in setup steps so the guide works for any machine. |
 
 ---
 

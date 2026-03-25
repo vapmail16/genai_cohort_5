@@ -26,14 +26,28 @@ class ActionAgent:
     - Handle errors gracefully
     """
 
-    def __init__(self, model: str = None, mcp_server_path: str = None):
+    def __init__(
+        self,
+        model: str = None,
+        mcp_server_path: str = None,
+        use_real_mcp: Optional[bool] = None,
+    ):
         """Initialize action agent with LLM and MCP client"""
         self.llm = ChatOpenAI(
             model=model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
             temperature=0
         )
 
-        # MCP server path
+        if use_real_mcp is None:
+            self.use_real_mcp = os.getenv("USE_REAL_MCP", "").lower() in (
+                "1",
+                "true",
+                "yes",
+            )
+        else:
+            self.use_real_mcp = use_real_mcp
+
+        # MCP server path (reference for docs / future config)
         self.mcp_server_path = mcp_server_path or os.path.join(
             os.path.dirname(__file__),
             '../../mcp_server/src/index.ts'
@@ -108,7 +122,8 @@ If no tool matches, respond with {{"tool": "none", "confidence": 0.0}}"""),
                 return {
                     'success': False,
                     'message': 'No suitable action found for this request',
-                    'suggestion': 'Please rephrase your request or create a support ticket'
+                    'suggestion': 'Please rephrase your request or create a support ticket',
+                    'mcp_transport': None,
                 }
 
             # Step 2: Execute the tool
@@ -128,14 +143,16 @@ If no tool matches, respond with {{"tool": "none", "confidence": 0.0}}"""),
                 'tool_used': tool_selection['tool'],
                 'result': tool_result,
                 'message': formatted_result,
-                'confidence': tool_selection['confidence']
+                'confidence': tool_selection['confidence'],
+                'mcp_transport': 'stdio_mcp' if self.use_real_mcp else 'simulated',
             }
 
         except Exception as e:
             return {
                 'success': False,
                 'error': str(e),
-                'message': f'Failed to execute action: {str(e)}'
+                'message': f'Failed to execute action: {str(e)}',
+                'mcp_transport': 'error',
             }
 
     def _select_tool(self, request: str, user_email: str) -> Dict[str, Any]:
@@ -214,13 +231,20 @@ If no tool matches, respond with {{"tool": "none", "confidence": 0.0}}"""),
         }
 
     def _call_mcp_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
-        """
-        Call MCP tool via subprocess.
+        """Call MCP tool via stdio (USE_REAL_MCP) or in-process simulation."""
+        if self.use_real_mcp:
+            try:
+                from backend.agents.mcp_stdio_client import call_mcp_tool_sync
+            except ImportError as err:
+                raise RuntimeError(
+                    "USE_REAL_MCP is enabled but the `mcp` package is not installed. "
+                    "Add `mcp` to requirements and pip install."
+                ) from err
+            return call_mcp_tool_sync(tool_name, params)
+        return self._simulate_mcp_tool(tool_name, params)
 
-        In production, this would use a proper MCP client.
-        For now, we simulate the tool responses.
-        """
-        # Simulate tool execution (in production, call actual MCP server)
+    def _simulate_mcp_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
+        """Deterministic tool responses for demos without a running MCP server."""
         if tool_name == 'check_vpn_status':
             return {
                 'status': 'connected',

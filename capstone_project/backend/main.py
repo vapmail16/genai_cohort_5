@@ -6,11 +6,11 @@ Simple working implementation demonstrating the TDD foundation
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Any, Dict, List, Optional
 import uvicorn
 from datetime import datetime
 
-from database import (
+from backend.database import (
     SessionLocal,
     init_db,
     create_ticket,
@@ -19,9 +19,14 @@ from database import (
     create_message,
     get_messages_by_session
 )
-from rag.retriever import get_rag_context
+from backend.rag.retriever import get_rag_context
+from backend.rag.db_retriever import get_db_rag_context
+from backend.chat_demo.router import compute_chat_reply
+from backend.agents.action_agent import ActionAgent
 from langchain_openai import ChatOpenAI
 import os
+
+from backend.teaching.router import router as teaching_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -42,6 +47,9 @@ app.add_middleware(
 # Initialize database
 init_db()
 
+# Teaching-only demo pipeline (isolated from /chat — Oxford / cohort labs)
+app.include_router(teaching_router)
+
 # Initialize LLM
 llm = ChatOpenAI(
     model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
@@ -58,6 +66,9 @@ class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None
     user_email: str = "demo@acmecorp.com"
+    # Oxford / cohort demo: greeting shows menu when True; buttons send demo_track.
+    demo_mode: bool = True
+    demo_track: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -66,6 +77,9 @@ class ChatResponse(BaseModel):
     session_id: str
     sources: Optional[List[str]] = None
     ticket_id: Optional[int] = None
+    demo_track: Optional[str] = None
+    presenter: Optional[Dict[str, str]] = None
+    mcp_trace: Optional[Dict[str, Any]] = None
 
 
 class TicketCreate(BaseModel):
@@ -103,7 +117,8 @@ async def root():
         "endpoints": {
             "health": "/health",
             "chat": "/chat",
-            "tickets": "/tickets"
+            "tickets": "/tickets",
+            "teaching_pipeline_trace": "/teaching/pipeline/trace"
         }
     }
 
@@ -143,40 +158,21 @@ async def chat(request: ChatRequest):
             content=request.message
         )
 
-        # Get relevant context from RAG system
-        try:
-            context, sources = get_rag_context(
-                query=request.message,
-                k=5  # Retrieve top 5 most relevant chunks
-            )
-        except Exception as e:
-            # Fallback to simple response if RAG fails
-            print(f"RAG retrieval failed: {e}")
-            context = ""
-            sources = ["fallback"]
-
-        # Generate response using LLM with RAG context
-        if context:
-            # Build prompt with context
-            prompt = f"""You are an IT support agent at Acme Corp. Use the following context from our knowledge base to answer the user's question. Be helpful, concise, and professional.
-
-Context from Knowledge Base:
-{context}
-
-User Question: {request.message}
-
-Instructions:
-- Provide a clear, step-by-step answer based on the context
-- If the context doesn't contain relevant information, say so politely
-- Include specific details like URLs, commands, or error codes when available
-- Be friendly and professional
-
-Answer:"""
-
-            response_text = llm.invoke(prompt).content
-        else:
-            # Fallback to simple response
-            response_text = generate_simple_response(request.message)
+        action_agent = ActionAgent()
+        result = compute_chat_reply(
+            message=request.message,
+            user_email=request.user_email,
+            demo_mode=request.demo_mode,
+            demo_track=request.demo_track,
+            llm=llm,
+            get_rag_context=get_rag_context,
+            generate_simple_response_fn=generate_simple_response,
+            action_agent=action_agent,
+            db_session=db,
+            get_db_rag_context_fn=get_db_rag_context,
+        )
+        response_text = result["response"]
+        sources = result.get("sources")
 
         # Store assistant response
         create_message(
@@ -189,7 +185,10 @@ Answer:"""
         return ChatResponse(
             response=response_text,
             session_id=session_id,
-            sources=sources if sources else ["no_sources"]
+            sources=sources if sources else ["no_sources"],
+            demo_track=result.get("demo_track"),
+            presenter=result.get("presenter"),
+            mcp_trace=result.get("mcp_trace"),
         )
 
     finally:
