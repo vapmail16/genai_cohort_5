@@ -1,7 +1,8 @@
 """
 Call the TypeScript MCP server over stdio using the official Python MCP SDK.
 
-Requires: `npm install` in `mcp_server/`, `npx` on PATH, and optional `USE_REAL_MCP=1`.
+Requires: `npm install` in `mcp_server/`, `npx` on PATH. Real stdio is the default; use
+`USE_SIMULATED_MCP=1` for in-process Python stubs (e.g. unit tests).
 """
 
 from __future__ import annotations

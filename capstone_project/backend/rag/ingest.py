@@ -3,12 +3,12 @@ RAG document ingestion pipeline.
 Implemented following TDD - all tests in test_rag_ingest.py should pass.
 """
 
+import backend.env_bootstrap  # noqa: F401 — loads backend/.env before OpenAI embeddings init
+
 import os
 import shutil
 from pathlib import Path
 from typing import List, Optional
-from dotenv import load_dotenv
-
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
@@ -16,6 +16,8 @@ from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 from langchain_core.documents import Document
+
+from backend.rag.config_paths import get_qdrant_path
 
 # Ollama is optional
 try:
@@ -25,10 +27,7 @@ except ImportError:
     OLLAMA_AVAILABLE = False
     OllamaEmbeddings = None
 
-load_dotenv()
-
 # Configuration
-QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant_storage")
 QDRANT_URL = os.getenv("QDRANT_URL", None)  # For Qdrant server mode
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
 MODEL_PROVIDER = os.getenv("MODEL_PROVIDER", "openai")
@@ -143,7 +142,7 @@ def get_qdrant_client(path: Optional[str] = None, url: Optional[str] = None) -> 
         )
     else:
         # Local disk mode
-        storage_path = path or QDRANT_PATH
+        storage_path = path or get_qdrant_path()
         return QdrantClient(path=storage_path)
 
 
@@ -169,7 +168,7 @@ def create_vector_store(
         collection_name = COLLECTION_NAME
 
     if persist_directory is None:
-        persist_directory = QDRANT_PATH
+        persist_directory = get_qdrant_path()
 
     embeddings_model = get_embeddings(embeddings)
 
@@ -192,7 +191,7 @@ def reset_vector_store(persist_directory: Optional[str] = None):
         persist_directory: Directory containing the vector store
     """
     if persist_directory is None:
-        persist_directory = QDRANT_PATH
+        persist_directory = get_qdrant_path()
 
     if os.path.exists(persist_directory):
         shutil.rmtree(persist_directory)
@@ -220,7 +219,7 @@ def ingest_documents(
     Returns:
         QdrantVectorStore instance
     """
-    persist_dir = os.getenv("QDRANT_PATH", QDRANT_PATH)
+    persist_dir = get_qdrant_path()
 
     if reset:
         reset_vector_store(persist_dir)
@@ -256,6 +255,14 @@ if __name__ == "__main__":
         chunk_size=args.chunk_size,
         chunk_overlap=args.chunk_overlap
     )
+
+    # Close Qdrant client explicitly to reduce noisy __del__ / ImportError on interpreter shutdown.
+    try:
+        client = getattr(vectorstore, "client", None)
+        if client is not None and hasattr(client, "close"):
+            client.close()
+    except Exception:
+        pass
 
     print("✓ Ingestion complete!")
     print("=" * 60)

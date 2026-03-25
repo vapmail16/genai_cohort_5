@@ -35,7 +35,7 @@ GenAI cohort materials, demos, and the **IT Support Agent** capstone (FastAPI + 
 | `capstone_project/mcp_server/` | Node MCP server (`npx tsx src/index.ts`) — run `npm install` here before real MCP. |
 | `capstone_project/frontend/` | React UI; floating **Chatbot** with Oxford demo strip + presenter / MCP trace panels. |
 
-**Run (typical):** backend `uvicorn backend.main:app --reload` from `capstone_project` with `PYTHONPATH` set; frontend `npm run dev` in `capstone_project/frontend`.  
+**Run (typical):** copy-paste commands (venv, ingest, API, frontend, tests) live in [capstone_project/docs/README.md](capstone_project/docs/README.md) under **§ Command cheat sheet**. Short version: from `capstone_project/`, set `backend/.env` from `.env.example`, then `uvicorn backend.main:app --reload --port 8000`; frontend `cd frontend && npm run dev` (proxies to :8000).  
 
 **Dependencies:** use a dedicated venv and `pip install -r capstone_project/backend/requirements.txt`. FastAPI **0.109.x** needs **Starlette 0.35.x** (pinned in requirements) — avoid upgrading Starlette to 1.x until FastAPI is upgraded.
 

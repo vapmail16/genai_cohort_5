@@ -6,7 +6,6 @@ Implements the state machine for coordinating all agents
 import os
 from typing import Dict, List, Optional, Any, TypedDict
 from datetime import datetime
-from dotenv import load_dotenv
 
 # Import all agents
 from backend.agents.triage import TriageAgent
@@ -14,8 +13,6 @@ from backend.agents.rag_agent import RAGAgent
 from backend.agents.ticket_agent import TicketAgent
 from backend.agents.response_agent import ResponseAgent
 from backend.agents.action_agent import ActionAgent
-
-load_dotenv()
 
 
 class AgentState(TypedDict, total=False):

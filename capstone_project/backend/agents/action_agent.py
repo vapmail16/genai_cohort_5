@@ -9,9 +9,6 @@ import subprocess
 from typing import Dict, List, Optional, Any
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 class ActionAgent:
@@ -39,11 +36,11 @@ class ActionAgent:
         )
 
         if use_real_mcp is None:
-            self.use_real_mcp = os.getenv("USE_REAL_MCP", "").lower() in (
-                "1",
-                "true",
-                "yes",
-            )
+            # Default: real MCP over stdio (TypeScript server under mcp_server/). Opt into
+            # in-process simulation with USE_SIMULATED_MCP=1 (e.g. pytest) or USE_REAL_MCP=0.
+            sim = os.getenv("USE_SIMULATED_MCP", "").lower() in ("1", "true", "yes")
+            legacy_off = os.getenv("USE_REAL_MCP", "").lower() in ("0", "false", "no")
+            self.use_real_mcp = not sim and not legacy_off
         else:
             self.use_real_mcp = use_real_mcp
 
@@ -74,7 +71,31 @@ class ActionAgent:
             'check_printer_queue': {
                 'description': 'Check printer queue and clear if needed',
                 'params': ['printer_name', 'clear_queue']
-            }
+            },
+            'agent_triage': {
+                'description': 'Classify user message into intent, category, and priority (chat pipeline step 1)',
+                'params': ['user_message', 'user_email'],
+            },
+            'agent_log_ticket': {
+                'description': 'Produce ticket title/metadata from triage (chat pipeline step 2; DB row created in Python)',
+                'params': [
+                    'user_message',
+                    'user_email',
+                    'intent',
+                    'category',
+                    'priority',
+                ],
+            },
+            'agent_compose_response': {
+                'description': 'Compose final user-facing reply from triage + ticket context (chat pipeline step 3)',
+                'params': [
+                    'user_message',
+                    'user_email',
+                    'triage',
+                    'ticket_mcp',
+                    'ticket_id',
+                ],
+            },
         }
 
         # Tool selection prompt
@@ -121,9 +142,24 @@ If no tool matches, respond with {{"tool": "none", "confidence": 0.0}}"""),
             if tool_selection['tool'] == 'none':
                 return {
                     'success': False,
-                    'message': 'No suitable action found for this request',
+                    'message': (
+                        'No suitable **action** tool matched. This demo picks **one** registered '
+                        'MCP tool per turn (VPN check, password reset, …) — it does not answer '
+                        'meta questions like “list every tool”.'
+                    ),
                     'suggestion': 'Please rephrase your request or create a support ticket',
                     'mcp_transport': None,
+                    'no_tool_match': True,
+                    'selection_method': tool_selection.get('selection_method'),
+                    'confidence': tool_selection.get('confidence'),
+                    'demo_tip': (
+                        'The model returned tool "none" because the request is not mapped to a '
+                        'concrete IT action in available_tools.'
+                    ),
+                    'example_working_prompts': [
+                        'Check my VPN status',
+                        'Start a password reset for my account',
+                    ],
                 }
 
             # Step 2: Execute the tool
@@ -143,7 +179,9 @@ If no tool matches, respond with {{"tool": "none", "confidence": 0.0}}"""),
                 'tool_used': tool_selection['tool'],
                 'result': tool_result,
                 'message': formatted_result,
-                'confidence': tool_selection['confidence'],
+                'confidence': tool_selection.get('confidence'),
+                'selection_method': tool_selection.get('selection_method'),
+                'params_used': tool_selection.get('params'),
                 'mcp_transport': 'stdio_mcp' if self.use_real_mcp else 'simulated',
             }
 
@@ -173,11 +211,15 @@ If no tool matches, respond with {{"tool": "none", "confidence": 0.0}}"""),
             })
 
             result = json.loads(response.content)
+            if isinstance(result, dict):
+                result.setdefault("selection_method", "llm")
             return result
 
-        except Exception as e:
+        except Exception:
             # Fallback to rule-based selection
-            return self._rule_based_tool_selection(request, user_email)
+            result = self._rule_based_tool_selection(request, user_email)
+            result["selection_method"] = "rule_based"
+            return result
 
     def _rule_based_tool_selection(self, request: str, user_email: str) -> Dict[str, Any]:
         """Fallback rule-based tool selection"""
@@ -231,7 +273,7 @@ If no tool matches, respond with {{"tool": "none", "confidence": 0.0}}"""),
         }
 
     def _call_mcp_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
-        """Call MCP tool via stdio (USE_REAL_MCP) or in-process simulation."""
+        """Call MCP tool via stdio (default) or in-process simulation (tests / USE_SIMULATED_MCP)."""
         if self.use_real_mcp:
             try:
                 from backend.agents.mcp_stdio_client import call_mcp_tool_sync
@@ -244,7 +286,7 @@ If no tool matches, respond with {{"tool": "none", "confidence": 0.0}}"""),
         return self._simulate_mcp_tool(tool_name, params)
 
     def _simulate_mcp_tool(self, tool_name: str, params: Dict[str, Any]) -> Any:
-        """Deterministic tool responses for demos without a running MCP server."""
+        """In-process stand-in for the TS MCP server (pytest / USE_SIMULATED_MCP=1 only)."""
         if tool_name == 'check_vpn_status':
             return {
                 'status': 'connected',
@@ -304,6 +346,64 @@ If no tool matches, respond with {{"tool": "none", "confidence": 0.0}}"""),
                 'queue_length': 0,
                 'message': 'Printer is ready'
             }
+
+        elif tool_name == 'agent_triage':
+            msg = (params.get('user_message') or '').lower()
+            if 'password' in msg:
+                category = 'PASSWORD'
+            elif any(
+                w in msg for w in ('vpn', 'wifi', 'network', 'dns', 'connection')
+            ):
+                category = 'NETWORK'
+            elif any(w in msg for w in ('software', 'excel', 'outlook', 'install')):
+                category = 'SOFTWARE'
+            elif any(w in msg for w in ('laptop', 'screen', 'printer', 'hardware')):
+                category = 'HARDWARE'
+            elif 'access' in msg or 'permission' in msg:
+                category = 'ACCESS'
+            else:
+                category = 'UNKNOWN'
+            priority = 'HIGH' if any(
+                w in msg for w in ('urgent', 'critical', 'down', 'outage')
+            ) else 'MEDIUM'
+            return {
+                'intent': 'SUPPORT_REQUEST',
+                'category': category,
+                'priority': priority,
+                'confidence': 0.86,
+                'rationale': 'Simulated triage via keyword rules (MCP)',
+            }
+
+        elif tool_name == 'agent_log_ticket':
+            snippet = (params.get('user_message') or '')[:72].strip()
+            title = (params.get('title_suggestion') or '').strip() or (
+                f"Support: {snippet}" if snippet else 'IT support request'
+            )
+            return {
+                'title_suggestion': title[:200],
+                'mcp_stage': 'ready_for_db',
+                'category': params.get('category'),
+                'priority': params.get('priority'),
+            }
+
+        elif tool_name == 'agent_compose_response':
+            from backend.chat_demo.compose_support_reply import (
+                build_support_reply,
+                coerce_rag_source_arg,
+            )
+
+            triage = params.get('triage') or {}
+            reply = build_support_reply(
+                user_message=str(params.get('user_message') or ''),
+                triage=triage if isinstance(triage, dict) else {},
+                ticket_id=params.get('ticket_id'),
+                source_note='simulated MCP',
+                rag_kb_text=str(params.get('rag_kb_text') or ''),
+                rag_db_text=str(params.get('rag_db_text') or ''),
+                rag_kb_sources=coerce_rag_source_arg(params.get('rag_kb_sources')),
+                rag_db_sources=coerce_rag_source_arg(params.get('rag_db_sources')),
+            )
+            return {'reply': reply, 'tone': 'professional'}
 
         else:
             raise ValueError(f"Unknown tool: {tool_name}")

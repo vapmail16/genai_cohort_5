@@ -22,8 +22,11 @@ def test_execute_action_includes_simulated_transport():
             "tool": "check_vpn_status",
             "params": {"user_email": "u@x.com"},
             "confidence": 0.9,
+            "selection_method": "llm",
         },
     ):
         out = agent.execute_action("check my vpn", "u@x.com")
     assert out.get("success") is True
     assert out.get("mcp_transport") == "simulated"
+    assert out.get("selection_method") == "llm"
+    assert out.get("params_used") == {"user_email": "u@x.com"}

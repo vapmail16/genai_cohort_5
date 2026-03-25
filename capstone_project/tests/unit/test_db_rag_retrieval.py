@@ -87,6 +87,44 @@ def test_get_db_rag_context_returns_matching_chunk(
         shutil.rmtree(tmp_path / "qdb", ignore_errors=True)
 
 
+def test_get_db_rag_context_source_labels_include_type_prefix(
+    db_engine, mock_embeddings, tmp_path: Path
+):
+    """Sources returned to the API should distinguish ticket vs message (demo / UI)."""
+    from sqlalchemy.orm import sessionmaker
+    from backend.database.models import Base, Ticket, TicketStatus, TicketPriority, IssueCategory
+    from backend.rag.db_retriever import get_db_rag_context
+
+    Base.metadata.create_all(bind=db_engine)
+    Session = sessionmaker(bind=db_engine)
+    db = Session()
+    qdrant_dir = str(tmp_path / "qlab")
+    Path(qdrant_dir).mkdir(parents=True, exist_ok=True)
+    try:
+        db.add(
+            Ticket(
+                title="Email sync",
+                description="Outlook not syncing.",
+                status=TicketStatus.OPEN,
+                priority=TicketPriority.LOW,
+                category=IssueCategory.SOFTWARE,
+                user_email="u@acme.com",
+            )
+        )
+        db.commit()
+
+        _ctx, sources = get_db_rag_context(
+            db,
+            "Outlook email",
+            k=3,
+            embeddings=mock_embeddings,
+            qdrant_path=qdrant_dir,
+        )
+        assert any("db_ticket:" in s for s in sources)
+    finally:
+        db.close()
+
+
 def test_get_db_rag_context_empty_db_returns_empty(mock_embeddings, tmp_path: Path):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker

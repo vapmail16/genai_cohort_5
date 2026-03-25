@@ -6,6 +6,8 @@ Uses a dedicated Qdrant collection `it_support_db`, separate from the markdown K
 
 from __future__ import annotations
 
+import backend.env_bootstrap  # noqa: F401 — loads backend/.env before OpenAI embeddings
+
 import gc
 import os
 from typing import List, Optional, Tuple
@@ -15,6 +17,7 @@ from qdrant_client import QdrantClient
 from sqlalchemy.orm import Session
 
 from backend.database.models import Message, Ticket
+from backend.rag.config_paths import get_qdrant_path
 from backend.rag.ingest import create_vector_store
 from backend.rag.retriever import format_docs_for_context, get_embeddings
 
@@ -98,7 +101,7 @@ def get_db_rag_context(
     if not docs:
         return "", ["no_db_records"]
 
-    persist = qdrant_path or os.getenv("QDRANT_PATH", "./qdrant_storage")
+    persist = qdrant_path or get_qdrant_path()
     os.makedirs(persist, exist_ok=True)
 
     emb = embeddings if embeddings is not None else get_embeddings(None)

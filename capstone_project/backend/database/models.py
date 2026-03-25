@@ -9,9 +9,6 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import enum
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Get database URL from environment
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./support_agent.db")

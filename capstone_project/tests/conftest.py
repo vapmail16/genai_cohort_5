@@ -3,8 +3,14 @@ Shared pytest fixtures for IT Support Agent tests.
 This file is automatically discovered by pytest.
 """
 
-import pytest
+import backend.env_bootstrap  # noqa: F401 — load backend/.env for local runs
+
 import os
+
+# Unit tests must not spawn the Node MCP stdio server by default (no npx/npm required in CI).
+os.environ["USE_SIMULATED_MCP"] = "1"
+
+import pytest
 import tempfile
 import shutil
 from pathlib import Path
@@ -149,16 +155,11 @@ def mock_llm():
 @pytest.fixture
 def mock_embeddings():
     """
-    Provide mock embeddings function.
-    Returns deterministic fake embeddings.
+    Small deterministic embedding model for tests (Qdrant + LangChain validate type/dim).
     """
-    mock = MagicMock()
+    from langchain_core.embeddings import FakeEmbeddings
 
-    # Return fixed embedding vector
-    mock.embed_documents.return_value = [[0.1, 0.2, 0.3] for _ in range(10)]
-    mock.embed_query.return_value = [0.1, 0.2, 0.3]
-
-    return mock
+    return FakeEmbeddings(size=3)
 
 
 @pytest.fixture

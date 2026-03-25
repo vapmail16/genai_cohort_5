@@ -3,6 +3,8 @@ IT Support Agent - FastAPI Application
 Simple working implementation demonstrating the TDD foundation
 """
 
+import backend.env_bootstrap  # noqa: F401 — loads backend/.env before other backend imports
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -170,6 +172,7 @@ async def chat(request: ChatRequest):
             action_agent=action_agent,
             db_session=db,
             get_db_rag_context_fn=get_db_rag_context,
+            session_id=session_id,
         )
         response_text = result["response"]
         sources = result.get("sources")
@@ -189,6 +192,7 @@ async def chat(request: ChatRequest):
             demo_track=result.get("demo_track"),
             presenter=result.get("presenter"),
             mcp_trace=result.get("mcp_trace"),
+            ticket_id=result.get("ticket_id"),
         )
 
     finally:
@@ -319,7 +323,7 @@ def generate_simple_response(message: str) -> str:
     """
     message_lower = message.lower()
 
-    # VPN issues
+    # VPN error 422 (specific — keep before general VPN branch)
     if "vpn" in message_lower and "422" in message_lower:
         return """I can help with VPN error 422! This is a common authentication timeout error.
 
@@ -332,6 +336,25 @@ def generate_simple_response(message: str) -> str:
 If the issue persists, try clearing your AnyConnect preferences and reinstalling.
 
 Did this help resolve your issue?"""
+
+    # VPN — install / setup / connect (fallback when RAG returns no context)
+    elif "vpn" in message_lower:
+        return """Here’s how to set up and connect to the **Acme Corp VPN** (Cisco AnyConnect):
+
+**Install**
+1. On a company laptop, install **Cisco AnyConnect** from **Company Portal** or **Software Center** (or your IT software catalog).
+2. If it’s not listed, contact IT for the approved installer.
+
+**Connect**
+1. Open AnyConnect and enter your **VPN server hostname** (see your onboarding email or the internal IT page for the exact value).
+2. Click **Connect** and sign in with your **corporate account** (e.g. `firstname.lastname@acmecorp.com`).
+3. Approve **MFA** when prompted (respond within about 60 seconds).
+
+**If something fails**
+- Share the **exact error text or code** (e.g. **422**) so we can troubleshoot.
+- **IT Support:** ext. **4357**
+
+Were you able to install AnyConnect, or is something blocking you at a specific step?"""
 
     # Password reset
     elif "password" in message_lower and ("reset" in message_lower or "forgot" in message_lower):

@@ -3,15 +3,18 @@ RAG document retrieval system.
 Implemented following TDD - all tests in test_rag_retrieval.py should pass.
 """
 
+import backend.env_bootstrap  # noqa: F401 — loads backend/.env for OpenAI embeddings when used as CLI
+
 import os
 from typing import List, Optional, Tuple
 from pathlib import Path
-from dotenv import load_dotenv
 
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
+
+from backend.rag.config_paths import get_qdrant_path
 
 # Ollama is optional
 try:
@@ -21,10 +24,7 @@ except ImportError:
     OLLAMA_AVAILABLE = False
     OllamaEmbeddings = None
 
-load_dotenv()
-
 # Configuration
-QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant_storage")
 QDRANT_URL = os.getenv("QDRANT_URL", None)
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
 MODEL_PROVIDER = os.getenv("MODEL_PROVIDER", "openai")
@@ -75,7 +75,7 @@ def get_qdrant_client(path: Optional[str] = None, url: Optional[str] = None) -> 
         )
     else:
         # Local disk mode
-        storage_path = path or QDRANT_PATH
+        storage_path = path or get_qdrant_path()
         return QdrantClient(path=storage_path)
 
 
@@ -101,7 +101,7 @@ def get_retriever(
         collection_name = COLLECTION_NAME
 
     if persist_directory is None:
-        persist_directory = QDRANT_PATH
+        persist_directory = get_qdrant_path()
 
     if search_kwargs is None:
         search_kwargs = {"k": 5}

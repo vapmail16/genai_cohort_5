@@ -9,6 +9,7 @@ export default defineConfig({
       '/chat': 'http://localhost:8000',
       '/tickets': 'http://localhost:8000',
       '/health': 'http://localhost:8000',
+      '/teaching': 'http://localhost:8000',
     },
   },
 })

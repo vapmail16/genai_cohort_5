@@ -49,6 +49,8 @@ htmlcov/
 
 # Vector Store
 chroma_db/
+qdrant_storage/
+backend/qdrant_storage/
 *.index
 
 # Logs

@@ -229,7 +229,7 @@ class TestIngestPipeline:
 
         # Arrange
         persist_dir = str(tmp_path / "test_chroma")
-        monkeypatch.setenv("CHROMA_PERSIST_DIR", persist_dir)
+        monkeypatch.setenv("QDRANT_PATH", persist_dir)
 
         # Act
         vectorstore = ingest_documents(
@@ -254,7 +254,7 @@ class TestIngestPipeline:
 
         # Arrange
         persist_dir = str(tmp_path / "test_chroma")
-        monkeypatch.setenv("CHROMA_PERSIST_DIR", persist_dir)
+        monkeypatch.setenv("QDRANT_PATH", persist_dir)
 
         # Create existing vectorstore
         ingest_documents(

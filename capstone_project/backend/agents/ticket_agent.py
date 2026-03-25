@@ -8,9 +8,6 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 class TicketAgent:

@@ -107,6 +107,63 @@ const TOOLS: Tool[] = [
       required: ['printer_name'],
     },
   },
+  {
+    name: 'agent_triage',
+    description:
+      'Chat pipeline step 1: classify user message into intent, category, and priority.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        user_message: { type: 'string', description: 'User message text' },
+        user_email: { type: 'string', description: 'User email' },
+      },
+      required: ['user_message', 'user_email'],
+    },
+  },
+  {
+    name: 'agent_log_ticket',
+    description:
+      'Chat pipeline step 2: propose ticket title and metadata from triage (DB row created in Python).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        user_message: { type: 'string' },
+        user_email: { type: 'string' },
+        intent: { type: 'string' },
+        category: { type: 'string' },
+        priority: { type: 'string' },
+      },
+      required: ['user_message', 'user_email'],
+    },
+  },
+  {
+    name: 'agent_compose_response',
+    description:
+      'Chat pipeline step 3: compose final user-facing reply from triage + ticket + optional KB/DB RAG excerpts.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        user_message: { type: 'string' },
+        user_email: { type: 'string' },
+        triage: { type: 'object', description: 'Output from agent_triage' },
+        ticket_mcp: { type: 'object', description: 'Output from agent_log_ticket' },
+        ticket_id: { type: 'number', description: 'SQLite ticket id if persisted' },
+        rag_kb_text: { type: 'string', description: 'Markdown KB retrieval (Python RAG)' },
+        rag_db_text: { type: 'string', description: 'DB tickets/messages retrieval (Python RAG)' },
+        rag_kb_sources: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'KB doc labels for citations (e.g. vpn_setup_guide.md)',
+        },
+        rag_db_sources: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'DB record labels (e.g. db_ticket:ticket_110)',
+        },
+      },
+      required: ['user_message', 'user_email'],
+    },
+  },
 ];
 
 // Simulated tool implementations
@@ -215,6 +272,237 @@ async function runNetworkDiagnostic(userEmail: string, testType: string = 'ping'
     overall_status: 'healthy',
     recommendation: 'Network connectivity is normal',
   };
+}
+
+function triageCategoryFromMessage(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes('password')) return 'PASSWORD';
+  if (m.includes('vpn') || m.includes('wifi') || m.includes('network') || m.includes('dns') || m.includes('connection'))
+    return 'NETWORK';
+  if (m.includes('software') || m.includes('excel') || m.includes('outlook') || m.includes('install'))
+    return 'SOFTWARE';
+  if (m.includes('laptop') || m.includes('screen') || m.includes('printer') || m.includes('hardware'))
+    return 'HARDWARE';
+  if (m.includes('access') || m.includes('permission')) return 'ACCESS';
+  return 'UNKNOWN';
+}
+
+function triagePriorityFromMessage(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes('urgent') || m.includes('critical') || m.includes('down') || m.includes('outage'))
+    return 'HIGH';
+  return 'MEDIUM';
+}
+
+async function agentTriage(userMessage: string, _userEmail: string): Promise<any> {
+  const category = triageCategoryFromMessage(userMessage);
+  const priority = triagePriorityFromMessage(userMessage);
+  return {
+    intent: 'SUPPORT_REQUEST',
+    category,
+    priority,
+    confidence: 0.86,
+    rationale: 'MCP triage (keyword rules, TS server)',
+  };
+}
+
+async function agentLogTicket(args: Record<string, unknown>): Promise<any> {
+  const userMessage = String(args.user_message ?? '');
+  const snippet = userMessage.slice(0, 72).trim();
+  const title = snippet ? `Support: ${snippet}` : 'IT support request';
+  return {
+    title_suggestion: title.slice(0, 200),
+    mcp_stage: 'ready_for_db',
+    category: args.category,
+    priority: args.priority,
+  };
+}
+
+function bulletsHardware(msg: string): string[] {
+  const m = msg.toLowerCase();
+  const out: string[] = [];
+  if (
+    /crash|crashed|data|lost|disk|drive|won't boot|wont boot|dead|blue screen|bsod/.test(m)
+  ) {
+    out.push(
+      "If it will not boot: stop repeated power cycles; unplug power, hold the power button 10s, then restart with the charger connected.",
+      'If it boots even once: copy important files to **OneDrive** or a network share **before** running disk repair or reinstalls.',
+      'Avoid saving new large files to the machine if you suspect disk failure—ask IT for imaging/recovery options.'
+    );
+  }
+  if (/screen|display|flicker|black/.test(m)) {
+    out.push(
+      'External monitor test: if the lid is black but an external display works, note that for IT (possible panel or cable).'
+    );
+  }
+  if (out.length === 0) {
+    out.push(
+      'Try a full shutdown (not just sleep), then power on with AC power connected.',
+      'Run any built-in hardware diagnostics from the vendor (e.g. startup diagnostics) and note error codes for IT.'
+    );
+  }
+  return out.slice(0, 5);
+}
+
+function bulletsNetwork(msg: string): string[] {
+  const m = msg.toLowerCase();
+  const out: string[] = [];
+  if (m.includes('vpn')) {
+    out.push(
+      'Quit the VPN client completely, wait 30 seconds, reopen, and reconnect (watch for MFA prompts).',
+      'If unstable on Wi‑Fi, try wired Ethernet once to rule out wireless issues.'
+    );
+  }
+  if (/wifi|wi-fi|wireless/.test(m)) {
+    out.push('Forget and rejoin the corporate SSID, or run the OS network troubleshooter.');
+  }
+  if (out.length === 0) {
+    out.push(
+      'Check physical connections and reboot the modem/router if on site.',
+      'Confirm whether colleagues have the same outage (helps narrow service vs device).'
+    );
+  }
+  return out.slice(0, 5);
+}
+
+function bulletsPassword(): string[] {
+  return [
+    'Use the self-service password portal if your org has one; complete MFA within the time limit.',
+    'If locked out after failed attempts, wait for the lockout window or contact the service desk with your verified work email.',
+  ];
+}
+
+function bulletsSoftware(): string[] {
+  return [
+    'Note the exact app name and version; try a full quit and relaunch first.',
+    'Check for pending OS or app updates; install during a maintenance window if policy allows.',
+    'If the app crashes on open, capture a screenshot of the error text for IT (ticket already references your report).',
+  ];
+}
+
+function bulletsAccess(): string[] {
+  return [
+    'Confirm which folder, app, or system you need access to and your business reason.',
+    'Your manager or resource owner may need to approve—mention them in the ticket thread if asked.',
+  ];
+}
+
+function bulletsUnknown(): string[] {
+  return [
+    'Reply with any error codes, screenshots, or “what changed” since it last worked.',
+    'If this blocks work, say so in the ticket—priority can be adjusted by the service desk.',
+  ];
+}
+
+function truncateBlock(s: string, limit = 1400): string {
+  const t = (s || '').trim();
+  if (t.length <= limit) return t;
+  return t.slice(0, limit - 3) + '...';
+}
+
+function formatRagCitationsBlock(
+  kbSources: string[] | undefined,
+  dbSources: string[] | undefined
+): string {
+  const kb = (kbSources || []).filter((x) => x && String(x).trim()).slice(0, 12);
+  const db = (dbSources || []).filter((x) => x && String(x).trim()).slice(0, 12);
+  if (kb.length === 0 && db.length === 0) return '';
+  const parts: string[] = [];
+  if (kb.length) parts.push('**Knowledge base:** ' + kb.join(', '));
+  if (db.length) parts.push('**Internal records:** ' + db.join(', '));
+  return parts.join('\n');
+}
+
+/** Mirrors backend/chat_demo/compose_support_reply.py for real stdio MCP. */
+function buildSupportReplyText(
+  userMessage: string,
+  triage: Record<string, unknown>,
+  ticketId: number | undefined,
+  sourceNote: string,
+  ragKbText?: string,
+  ragDbText?: string,
+  ragKbSources?: string[],
+  ragDbSources?: string[]
+): string {
+  const cat = String(triage.category ?? 'UNKNOWN').toUpperCase();
+  const msg = userMessage || '';
+  let bullets: string[] = [];
+  switch (cat) {
+    case 'HARDWARE':
+      bullets = bulletsHardware(msg);
+      break;
+    case 'NETWORK':
+      bullets = bulletsNetwork(msg);
+      break;
+    case 'PASSWORD':
+      bullets = bulletsPassword();
+      break;
+    case 'SOFTWARE':
+      bullets = bulletsSoftware();
+      break;
+    case 'ACCESS':
+      bullets = bulletsAccess();
+      break;
+    default:
+      bullets = bulletsUnknown();
+  }
+
+  const lines: string[] = [`**Triage:** category **${cat}** (${sourceNote}).`];
+  const kb = (ragKbText || '').trim();
+  const db = (ragDbText || '').trim();
+  if (kb) {
+    lines.push('', '**From knowledge base (markdown RAG):**', truncateBlock(kb));
+  }
+  if (db) {
+    lines.push('', '**From internal tickets / messages (DB RAG):**', truncateBlock(db));
+  }
+  const cite = formatRagCitationsBlock(ragKbSources, ragDbSources);
+  if (cite) {
+    lines.push('', '**Citations (retrieval):**', cite);
+  }
+  lines.push('', '**What to try now:**');
+  for (const b of bullets) {
+    lines.push(`- ${b}`);
+  }
+  lines.push('');
+  if (ticketId != null && !Number.isNaN(Number(ticketId))) {
+    lines.push(
+      `**Ticket #${ticketId}** is logged so IT can follow up or escalate if needed.`
+    );
+  } else {
+    lines.push(
+      '**Note:** No ticket id in this session—describe your issue again when contacting the service desk.'
+    );
+  }
+  lines.push(
+    'You can reply in this chat with updates (error codes, screenshots) to attach context to your request.'
+  );
+  return lines.join('\n');
+}
+
+async function agentComposeResponse(args: Record<string, unknown>): Promise<any> {
+  const triage = (args.triage as Record<string, unknown>) || {};
+  const tid = args.ticket_id as number | undefined;
+  const userMessage = String(args.user_message ?? '');
+  const ragKb = String(args.rag_kb_text ?? '');
+  const ragDb = String(args.rag_db_text ?? '');
+  const ragKbSources = Array.isArray(args.rag_kb_sources)
+    ? (args.rag_kb_sources as unknown[]).filter((x): x is string => typeof x === 'string')
+    : [];
+  const ragDbSources = Array.isArray(args.rag_db_sources)
+    ? (args.rag_db_sources as unknown[]).filter((x): x is string => typeof x === 'string')
+    : [];
+  const reply = buildSupportReplyText(
+    userMessage,
+    triage,
+    tid,
+    'MCP TS server',
+    ragKb,
+    ragDb,
+    ragKbSources,
+    ragDbSources
+  );
+  return { reply, tone: 'professional' };
 }
 
 async function checkPrinterQueue(printerName: string, clearQueue: boolean = false): Promise<any> {
@@ -326,6 +614,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: JSON.stringify(result, null, 2),
             },
           ],
+        };
+      }
+
+      case 'agent_triage': {
+        const result = await agentTriage(
+          args.user_message as string,
+          args.user_email as string
+        );
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case 'agent_log_ticket': {
+        const result = await agentLogTicket(args as Record<string, unknown>);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case 'agent_compose_response': {
+        const result = await agentComposeResponse(args as Record<string, unknown>);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };
       }
 

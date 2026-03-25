@@ -16,7 +16,7 @@ from pathlib import Path
 class TestVectorStoreRetrieval:
     """Tests for retrieving documents from vector store"""
 
-    def test_retrieve_vpn_docs_returns_relevant_results(self, temp_docs_dir, mock_embeddings, tmp_path):
+    def test_retrieve_vpn_docs_returns_relevant_results(self, temp_docs_dir, mock_embeddings, tmp_path, monkeypatch):
         """
         Test Name: RAG_Retrieve_VPNQuery_ReturnsRelevantDocs
         Priority: P0
@@ -27,6 +27,7 @@ class TestVectorStoreRetrieval:
 
         # Arrange - create vectorstore with sample docs
         persist_dir = str(tmp_path / "test_chroma")
+        monkeypatch.setenv("QDRANT_PATH", persist_dir)
         vectorstore = ingest_documents(
             docs_dir=str(temp_docs_dir),
             reset=True,
@@ -46,7 +47,7 @@ class TestVectorStoreRetrieval:
         assert all(hasattr(doc, 'page_content') for doc in results)
         assert all(hasattr(doc, 'metadata') for doc in results)
 
-    def test_retrieve_password_docs_returns_password_content(self, temp_docs_dir, mock_embeddings, tmp_path):
+    def test_retrieve_password_docs_returns_password_content(self, temp_docs_dir, mock_embeddings, tmp_path, monkeypatch):
         """
         Test Name: RAG_Retrieve_PasswordQuery_ReturnsPasswordDocs
         Priority: P0
@@ -57,6 +58,7 @@ class TestVectorStoreRetrieval:
 
         # Arrange
         persist_dir = str(tmp_path / "test_chroma")
+        monkeypatch.setenv("QDRANT_PATH", persist_dir)
         vectorstore = ingest_documents(
             docs_dir=str(temp_docs_dir),
             reset=True,
@@ -76,7 +78,7 @@ class TestVectorStoreRetrieval:
         content = " ".join([doc.page_content.lower() for doc in results])
         assert "password" in content
 
-    def test_retrieve_with_k_parameter_limits_results(self, temp_docs_dir, mock_embeddings, tmp_path):
+    def test_retrieve_with_k_parameter_limits_results(self, temp_docs_dir, mock_embeddings, tmp_path, monkeypatch):
         """
         Test Name: RAG_Retrieve_WithKParam_LimitsResults
         Priority: P1
@@ -87,6 +89,7 @@ class TestVectorStoreRetrieval:
 
         # Arrange
         persist_dir = str(tmp_path / "test_chroma")
+        monkeypatch.setenv("QDRANT_PATH", persist_dir)
         vectorstore = ingest_documents(
             docs_dir=str(temp_docs_dir),
             reset=True,
@@ -103,7 +106,7 @@ class TestVectorStoreRetrieval:
         # Assert
         assert len(results) <= 2
 
-    def test_retrieve_includes_source_metadata(self, temp_docs_dir, mock_embeddings, tmp_path):
+    def test_retrieve_includes_source_metadata(self, temp_docs_dir, mock_embeddings, tmp_path, monkeypatch):
         """
         Test Name: RAG_Retrieve_Results_IncludeSourceMetadata
         Priority: P1
@@ -114,6 +117,7 @@ class TestVectorStoreRetrieval:
 
         # Arrange
         persist_dir = str(tmp_path / "test_chroma")
+        monkeypatch.setenv("QDRANT_PATH", persist_dir)
         vectorstore = ingest_documents(
             docs_dir=str(temp_docs_dir),
             reset=True,
@@ -150,7 +154,7 @@ class TestRetrieverInitialization:
 
         # Arrange - create and persist vectorstore
         persist_dir = str(tmp_path / "test_chroma")
-        monkeypatch.setenv("CHROMA_PERSIST_DIR", persist_dir)
+        monkeypatch.setenv("QDRANT_PATH", persist_dir)
 
         ingest_documents(
             docs_dir=str(temp_docs_dir),
@@ -168,7 +172,7 @@ class TestRetrieverInitialization:
         assert retriever is not None
         assert hasattr(retriever, 'get_relevant_documents') or hasattr(retriever, 'invoke')
 
-    def test_get_retriever_with_search_kwargs(self, temp_docs_dir, mock_embeddings, tmp_path):
+    def test_get_retriever_with_search_kwargs(self, temp_docs_dir, mock_embeddings, tmp_path, monkeypatch):
         """
         Test Name: RAG_GetRetriever_WithSearchKwargs_ConfiguresCorrectly
         Priority: P1
@@ -179,6 +183,7 @@ class TestRetrieverInitialization:
 
         # Arrange
         persist_dir = str(tmp_path / "test_chroma")
+        monkeypatch.setenv("QDRANT_PATH", persist_dir)
         ingest_documents(
             docs_dir=str(temp_docs_dir),
             reset=True,
@@ -276,7 +281,7 @@ class TestContextFormatting:
 class TestRAGPipeline:
     """Tests for complete RAG retrieval pipeline"""
 
-    def test_rag_pipeline_query_to_context(self, temp_docs_dir, mock_embeddings, tmp_path):
+    def test_rag_pipeline_query_to_context(self, temp_docs_dir, mock_embeddings, tmp_path, monkeypatch):
         """
         Test Name: RAG_Pipeline_QueryToContext_ReturnsFormattedContext
         Priority: P0
@@ -287,6 +292,7 @@ class TestRAGPipeline:
 
         # Arrange - create vectorstore
         persist_dir = str(tmp_path / "test_chroma")
+        monkeypatch.setenv("QDRANT_PATH", persist_dir)
         ingest_documents(
             docs_dir=str(temp_docs_dir),
             reset=True,
@@ -308,7 +314,7 @@ class TestRAGPipeline:
         assert isinstance(context, str)
         assert len(context) > 0
 
-    def test_rag_pipeline_returns_sources_list(self, temp_docs_dir, mock_embeddings, tmp_path):
+    def test_rag_pipeline_returns_sources_list(self, temp_docs_dir, mock_embeddings, tmp_path, monkeypatch):
         """
         Test Name: RAG_Pipeline_WithSources_ReturnsSourcesList
         Priority: P1
@@ -319,6 +325,7 @@ class TestRAGPipeline:
 
         # Arrange
         persist_dir = str(tmp_path / "test_chroma")
+        monkeypatch.setenv("QDRANT_PATH", persist_dir)
         ingest_documents(
             docs_dir=str(temp_docs_dir),
             reset=True,
