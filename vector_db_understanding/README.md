@@ -35,13 +35,17 @@ An interactive Streamlit application designed to help you learn and understand v
 
 ### Qdrant (for the PDF lab)
 
-Start Qdrant locally (REST on port **6333**):
+**Recommended:** [Qdrant Cloud](https://cloud.qdrant.io/) — REST URL + API key (no Docker required).
 
-```bash
-docker compose up -d
-```
+1. Copy `vector_db_understanding/.env.example` to **`vector_db_understanding/.env`** (gitignored).
+2. Set **`QDRANT_URL`** (HTTPS cluster URL, usually port **6333**) and **`QDRANT_API_KEY`** from the Cloud console.
+3. Optional: **`QDRANT_COLLECTION`** (default `cohort_pdf_demo`).
 
-Open the dashboard at `http://localhost:6334` if you want to browse collections in the UI.
+The Streamlit **Qdrant PDF lab** and the CLI read these variables automatically. You can still override URL/key in the UI.
+
+**What runs:** PDF text → **local** Sentence-Transformers embeddings → upsert to Qdrant → scroll to inspect vectors. **No LLM** and no RAG answering in this lab.
+
+**Optional:** local Qdrant via Docker (`docker compose up -d` in this folder) only if you want a server on `http://localhost:6333` instead of Cloud.
 
 ## 🎯 Running the Application
 
@@ -56,10 +60,12 @@ Open the dashboard at `http://localhost:6334` if you want to browse collections 
 
 ### CLI: PDF → Qdrant (same pipeline as the lab)
 
-With Qdrant running:
+With `.env` configured (or flags):
 
 ```bash
-python qdrant_pdf_pipeline.py path/to/slides.pdf --qdrant-url http://localhost:6333 --collection cohort_pdf_demo
+python qdrant_pdf_pipeline.py path/to/slides.pdf
+# Optional overrides:
+# python qdrant_pdf_pipeline.py path/to/slides.pdf --qdrant-url https://....:6333 --api-key YOUR_KEY
 ```
 
 ## 📚 Learning Modules
@@ -79,6 +85,11 @@ python qdrant_pdf_pipeline.py path/to/slides.pdf --qdrant-url http://localhost:6
 - **Euclidean Distance**: Straight-line distance for actual values
 - **Dot Product**: Raw compatibility scoring
 - **Manhattan Distance**: City-block approach for robust measurements
+
+### 📐 Similarity math (theory & examples)
+- Plain-language intuition, LaTeX formulas, hand-worked examples
+- Expandable **Check** rows that echo `similarity_math.py` (same numbers as the deep-dive doc)
+- Quick comparison table + how metrics relate to Qdrant
 
 ### 🧠 Embedding Models
 - **BERT (768D)**: Context-aware transformer for local development
@@ -114,8 +125,8 @@ python qdrant_pdf_pipeline.py path/to/slides.pdf --qdrant-url http://localhost:6
 - Image similarity search
 
 ### 📦 Qdrant PDF lab (live)
-- Requires **Docker** (or any Qdrant instance) + full `requirements.txt` install
-- Upload a PDF, upsert chunks with **384-d** `all-MiniLM-L6-v2` embeddings (default)
+- Requires **`QDRANT_URL` / `QDRANT_API_KEY`** in `vector_db_understanding/.env` (Qdrant Cloud) or any reachable Qdrant REST endpoint + full `requirements.txt` install
+- Upload a PDF, upsert chunks with **384-d** `all-MiniLM-L6-v2` embeddings (local model; **not** an LLM summarizer)
 - Inspect **vector dimension**, **L2 norm**, and **first N components** per point
 
 ## 🎮 How to Use

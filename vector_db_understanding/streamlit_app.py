@@ -16,6 +16,7 @@ from app_modules import (
     show_popular_technologies, show_real_world_examples
 )
 from qdrant_lab import show_qdrant_pdf_lab
+from similarity_theory_page import show_similarity_math_theory
 
 # Page configuration
 st.set_page_config(
@@ -74,6 +75,7 @@ def main():
             "🏠 Home",
             "📐 Vector Fundamentals", 
             "🎯 Similarity Metrics",
+            "📐 Similarity math (theory & examples)",
             "🧠 Embedding Models",
             "🏗️ Index Types",
             "🔍 Query Types",
@@ -90,6 +92,8 @@ def main():
         show_vector_fundamentals()
     elif page == "🎯 Similarity Metrics":
         show_similarity_metrics()
+    elif page == "📐 Similarity math (theory & examples)":
+        show_similarity_math_theory()
     elif page == "🧠 Embedding Models":
         show_embedding_models()
     elif page == "🏗️ Index Types":
@@ -115,6 +119,7 @@ def show_home():
     ### What You'll Learn:
     - **Vector Fundamentals**: Understanding dimensions, embeddings, and vector operations
     - **Similarity Metrics**: Cosine similarity, Euclidean distance, and when to use each
+    - **Similarity math (theory)**: Formulas, worked numbers, comparison table, Qdrant tie-in (pairs with the interactive metrics page)
     - **Embedding Models**: BERT, OpenAI, and other popular models
     - **Index Types**: HNSW, LSH, and other indexing strategies
     - **Query Types**: KNN, range queries, and approximate search

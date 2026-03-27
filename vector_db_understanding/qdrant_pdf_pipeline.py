@@ -103,6 +103,22 @@ def ensure_collection(
     )
 
 
+def delete_qdrant_collection(
+    *,
+    qdrant_url: str,
+    api_key: str | None,
+    collection_name: str,
+) -> str:
+    """
+    Drop the collection so the next ingest recreates it (empty slate).
+    """
+    client = QdrantClient(url=qdrant_url, api_key=api_key)
+    if not _collection_exists(client, collection_name):
+        return f"Collection {collection_name!r} does not exist — nothing to delete."
+    client.delete_collection(collection_name=collection_name)
+    return f"Deleted collection {collection_name!r}. You can ingest again to recreate it."
+
+
 def ingest_pdf_to_qdrant(
     pdf_source: str | Path | BinaryIO | bytes,
     *,
@@ -198,22 +214,43 @@ def summarize_vector(vec: list[float] | None, head: int = 16) -> dict[str, Any]:
 
 def main() -> None:
     import argparse
+    import os
+
+    from vector_db_env import load_vector_db_env
+
+    load_vector_db_env()
 
     parser = argparse.ArgumentParser(description="Ingest a PDF into Qdrant (HTTP API).")
     parser.add_argument("pdf", type=Path, help="Path to PDF file")
-    parser.add_argument("--qdrant-url", default="http://localhost:6333")
-    parser.add_argument("--api-key", default=None)
-    parser.add_argument("--collection", default="cohort_pdf_demo")
+    parser.add_argument(
+        "--qdrant-url",
+        default=None,
+        help="Override QDRANT_URL (default: from .env, else http://localhost:6333)",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="Override QDRANT_API_KEY (default: from .env)",
+    )
+    parser.add_argument(
+        "--collection",
+        default=None,
+        help="Override QDRANT_COLLECTION (default: cohort_pdf_demo)",
+    )
     parser.add_argument("--chunk-size", type=int, default=400)
     parser.add_argument("--overlap", type=int, default=50)
     parser.add_argument("--model", default=None, help="sentence-transformers model id")
     args = parser.parse_args()
 
+    q_url = args.qdrant_url or os.getenv("QDRANT_URL", "").strip() or "http://localhost:6333"
+    q_key = args.api_key if args.api_key is not None else os.getenv("QDRANT_API_KEY", "").strip() or None
+    q_coll = (args.collection or os.getenv("QDRANT_COLLECTION", "").strip() or "cohort_pdf_demo")
+
     result = ingest_pdf_to_qdrant(
         args.pdf,
-        qdrant_url=args.qdrant_url,
-        api_key=args.api_key,
-        collection_name=args.collection,
+        qdrant_url=q_url,
+        api_key=q_key,
+        collection_name=q_coll,
         chunk_size=args.chunk_size,
         overlap=args.overlap,
         embed_model=args.model,

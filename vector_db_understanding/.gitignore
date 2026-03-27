@@ -1,0 +1,2 @@
+# Local demo PDFs (use Streamlit upload; do not commit binaries)
+*.pdf

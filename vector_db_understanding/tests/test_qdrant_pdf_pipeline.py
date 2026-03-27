@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from qdrant_pdf_pipeline import (
+    delete_qdrant_collection,
     embed_texts,
     extract_text_from_pdf,
     ingest_pdf_to_qdrant,
@@ -65,3 +66,35 @@ def test_ingest_pdf_to_qdrant_mocked():
     assert len(result.points_preview) == 2
     assert "vector_first_k" in result.points_preview[0]
     mock_client.upsert.assert_called_once()
+
+
+def test_delete_qdrant_collection_removes_when_exists():
+    coll = MagicMock()
+    coll.name = "demo"
+    mock_client = MagicMock()
+    mock_client.get_collections.return_value = MagicMock(collections=[coll])
+
+    with patch("qdrant_pdf_pipeline.QdrantClient", return_value=mock_client):
+        msg = delete_qdrant_collection(
+            qdrant_url="https://example:6333",
+            api_key="k",
+            collection_name="demo",
+        )
+
+    assert "Deleted" in msg
+    mock_client.delete_collection.assert_called_once_with(collection_name="demo")
+
+
+def test_delete_qdrant_collection_noop_when_missing():
+    mock_client = MagicMock()
+    mock_client.get_collections.return_value = MagicMock(collections=[])
+
+    with patch("qdrant_pdf_pipeline.QdrantClient", return_value=mock_client):
+        msg = delete_qdrant_collection(
+            qdrant_url="https://example:6333",
+            api_key=None,
+            collection_name="demo",
+        )
+
+    assert "does not exist" in msg
+    mock_client.delete_collection.assert_not_called()
