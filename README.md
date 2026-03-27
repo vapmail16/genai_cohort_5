@@ -9,7 +9,7 @@ GenAI cohort materials, demos, and the **IT Support Agent** capstone (FastAPI + 
 | Folder | What it is |
 |--------|------------|
 | [**capstone_project/**](capstone_project/) | **Main product:** IT Support Agent — `backend/` (FastAPI, agents, RAG, teaching routes, chat demo tracks), `frontend/` (Vite + React), `mcp_server/` (TypeScript MCP tools for stdio), `tests/`, `docs/`. See [capstone_project/docs/README.md](capstone_project/docs/README.md). |
-| [**mcp/**](mcp/) | **Oxford / cohort MCP session:** plan ([OXFORD_MCP_SESSION_PLAN.md](mcp/OXFORD_MCP_SESSION_PLAN.md)), architecture HTML ([MCPArchitecture.html](mcp/MCPArchitecture.html), [ITSupportArchitecture.html](mcp/ITSupportArchitecture.html)), deck exports (`mcp_oxford_final.pdf` / `.pptx`), talking points (`mcp_talking_points_v2.docx`). |
+| [**mcp/**](mcp/) | **MCP session assets:** architecture HTML ([MCPArchitecture.html](mcp/MCPArchitecture.html), [ITSupportArchitecture.html](mcp/ITSupportArchitecture.html)), [mcp-dungeon](mcp/mcp-dungeon/) (interactive demo). |
 | [**ai_agents/**](ai_agents/) | LangGraph / agent demos and training notes. |
 | [**langchain_openai/**](langchain_openai/) | Week 2 — LangChain chatbot exercises (chains, memory, model switch). |
 | [**neural_network_example/**](neural_network_example/) | Streamlit demo: next-word prediction with a small neural net. |
