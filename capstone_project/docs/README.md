@@ -448,6 +448,8 @@ MIT License - GenAI Cohort 5 Capstone Project
 
 | Date | What went wrong | How to avoid next time |
 |------|-----------------|-------------------------|
+| 2026-03-27 | Vector DB cohort session needed slide-ready similarity copy + a live Qdrant PDF pipeline. | Added plain-language + worked examples in `vector_db_understanding/vector_databases_technical_deep_dive.md` (Cohort slides section); `qdrant_pdf_pipeline.py` + Streamlit **Qdrant PDF lab** + `docker-compose.yml`; run `docker compose up -d` then `streamlit run streamlit_app.py`. |
+| 2026-03-25 | Oxford standalone bundle (`../oxford_capstone`) initially omitted `.env` (rsync exclude) so the user had to recreate secrets. | When the user explicitly wants parity with their machine, copy `capstone_project/backend/.env` and `mcp/mcp-dungeon/.env` after rsync; document in bundle README that `.env` is sensitive and must stay gitignored if they init a repo. |
 | 2026-03-25 | Agentic RAG replies did not show **which** docs/tickets were used. | **`Citations (retrieval):`** block in compose (`rag_kb_sources` / `rag_db_sources`); LLM finalize prompt requires a **Sources** line using the same labels. |
 | 2026-03-25 | Agentic MCP had no **RAG**; other tracks had KB/DB retrieval. | Pipeline now runs **KB + DB retrieval** after triage (`agentic_rag_retrieval.py`), passes excerpts into `agent_compose_response`, optional **`agentic_reply_finalize`** LLM merge; `mcp_trace` includes `agent_retrieve_kb_db` (`python_rag`). |
 | 2026-03-25 | Agentic MCP **compose** step only said “IT will email you” with no guidance. | Added `backend/chat_demo/compose_support_reply.py` (category + keyword bullets) and mirrored logic in `mcp_server` `agent_compose_response` for real stdio. |

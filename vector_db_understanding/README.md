@@ -6,6 +6,8 @@ An interactive Streamlit application designed to help you learn and understand v
 
 - **Interactive Vector Fundamentals**: Create and visualize your own vectors
 - **Similarity Metrics**: Hands-on demonstrations of cosine similarity, Euclidean distance, dot product, and Manhattan distance
+- **Slide-ready theory**: See **“Cohort slides — Similarity metrics”** in `vector_databases_technical_deep_dive.md` (plain language + hand-calculated examples)
+- **Qdrant PDF lab (live)**: Ingest PDFs via the **Qdrant HTTP API**, then inspect **dimensions** and the **first components** of stored vectors (Streamlit module + CLI)
 - **Embedding Models**: Compare BERT vs OpenAI embeddings with real examples
 - **Index Types**: Explore HNSW, LSH, Product Quantization, and more
 - **Visual Learning**: Rich visualizations and interactive examples
@@ -29,6 +31,17 @@ An interactive Streamlit application designed to help you learn and understand v
    ```bash
    pip install -r requirements.txt
    ```
+   (`sentence-transformers` pulls **PyTorch** — first install can take a few minutes.)
+
+### Qdrant (for the PDF lab)
+
+Start Qdrant locally (REST on port **6333**):
+
+```bash
+docker compose up -d
+```
+
+Open the dashboard at `http://localhost:6334` if you want to browse collections in the UI.
 
 ## 🎯 Running the Application
 
@@ -40,6 +53,14 @@ An interactive Streamlit application designed to help you learn and understand v
 2. **Open your browser** and go to the URL shown in the terminal (usually `http://localhost:8501`)
 
 3. **Start learning!** Use the sidebar to navigate between different modules
+
+### CLI: PDF → Qdrant (same pipeline as the lab)
+
+With Qdrant running:
+
+```bash
+python qdrant_pdf_pipeline.py path/to/slides.pdf --qdrant-url http://localhost:6333 --collection cohort_pdf_demo
+```
 
 ## 📚 Learning Modules
 
@@ -92,6 +113,11 @@ An interactive Streamlit application designed to help you learn and understand v
 - Document retrieval
 - Image similarity search
 
+### 📦 Qdrant PDF lab (live)
+- Requires **Docker** (or any Qdrant instance) + full `requirements.txt` install
+- Upload a PDF, upsert chunks with **384-d** `all-MiniLM-L6-v2` embeddings (default)
+- Inspect **vector dimension**, **L2 norm**, and **first N components** per point
+
 ## 🎮 How to Use
 
 1. **Start with Vector Fundamentals** to build your foundation
@@ -139,6 +165,13 @@ Feel free to:
 ## 📄 License
 
 This project is open source and available under the MIT License.
+
+## 🧪 Tests
+
+```bash
+pytest -m "not slow"   # fast unit tests
+pytest -m slow         # loads sentence-transformers (downloads model on first run)
+```
 
 ## 🆘 Troubleshooting
 

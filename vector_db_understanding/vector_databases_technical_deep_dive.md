@@ -6,6 +6,100 @@
 
 **Core Purpose**: Enable fast similarity search and retrieval of data points in high-dimensional spaces, typically used for AI/ML applications like semantic search, recommendation systems, and similarity matching.
 
+## Cohort slides — Similarity metrics (plain language + tiny worked examples)
+
+Use this section as **speaker notes / slide bullets**. Each metric answers a slightly different question about the relationship between two vectors.
+
+### The mental model
+
+- A **vector** is a list of numbers. Think of it as an arrow from the origin into space (2D, 3D, or thousands of dimensions for embeddings).
+- **Similarity / distance** is a score that says how “close” two vectors are. High similarity usually means “same direction or same neighborhood,” depending on the metric.
+- **Not every metric is a similarity**: Euclidean and Manhattan are *distances* (small = close). Cosine and dot product are *scores* (high can mean close, depending on setup).
+
+---
+
+### Dot product — “How much do these two lists reinforce each other?”
+
+**Intuition**: Multiply each pair of matching coordinates and add everything up. If both numbers in a dimension are large and *same sign*, they contribute a lot. If one is near zero, that dimension barely matters.
+
+**Formula** (same length vectors):  
+\(\mathbf{a} \cdot \mathbf{b} = \sum_i a_i b_i\)
+
+**Worked example**: \(\mathbf{a} = [2, 3]\), \(\mathbf{b} = [4, 1]\)  
+Dot \(= 2 \times 4 + 3 \times 1 = 8 + 3 = 11\).
+
+**Natural language**: “We’re adding up agreement dimension by dimension, with no notion of ‘angle’ yet—just weighted overlap.”
+
+**Note**: Raw dot product grows with vector length. Longer embeddings often produce larger dots even when the *topic* is similar—so for search we often compare **normalized** vectors or use cosine instead.
+
+---
+
+### Cosine similarity — “Do the two arrows point in the same direction?”
+
+**Intuition**: Ignore how *long* the arrows are; focus on the **angle** between them. Two preference vectors \([0.9, 0.1]\) and \([0.45, 0.05]\) are **parallel** (same taste), even though the second person is less intense.
+
+**Formula**:  
+\(\text{cos\_sim}(\mathbf{a}, \mathbf{b}) = \frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{a}\| \,\|\mathbf{b}\|}\)  
+where \(\|\mathbf{a}\| = \sqrt{\sum_i a_i^2}\) (length of the vector).
+
+**Range**: Typically **[-1, 1]** for cosine similarity. **1** = same direction, **0** = orthogonal, **-1** = opposite direction.
+
+**Worked example**: \(\mathbf{a} = [1, 0]\), \(\mathbf{b} = [1, 1]\)  
+- Dot \(= 1\); \(\|\mathbf{a}\| = 1\); \(\|\mathbf{b}\| = \sqrt{2}\)  
+- Cosine \(= 1 / \sqrt{2} \approx 0.707\)
+
+**Natural language**: “We’re asking: if two people’s taste arrows point the same way, they’re similar—whether they’re ‘quiet’ or ‘loud’ about it.”
+
+**Cosine distance** (sometimes used in DBs): \(1 - \text{cosine\_similarity}\) (smaller = closer).
+
+---
+
+### Euclidean distance (L2) — “How far apart are the points in space?”
+
+**Intuition**: Ordinary straight-line distance, like a ruler between two points. If you care about **absolute magnitudes** (prices, coordinates, sensor readings), Euclidean is natural.
+
+**Formula**:  
+\(\|\mathbf{a} - \mathbf{b}\|_2 = \sqrt{\sum_i (a_i - b_i)^2}\)
+
+**Worked example**: \(\mathbf{a} = [0, 0]\), \(\mathbf{b} = [3, 4]\)  
+Distance \(= \sqrt{3^2 + 4^2} = \sqrt{25} = 5\) (classic 3–4–5 triangle).
+
+**Natural language**: “We’re measuring how many steps you’d take if you could fly in a straight line through the feature space.”
+
+---
+
+### Manhattan distance (L1) — “How many city blocks apart are we?”
+
+**Intuition**: You can only move along axes (like streets in Manhattan). Add up the absolute differences per dimension.
+
+**Formula**:  
+\(\|\mathbf{a} - \mathbf{b}\|_1 = \sum_i |a_i - b_i|\)
+
+**Worked example**: \(\mathbf{a} = [1, 2]\), \(\mathbf{b} = [4, 6]\)  
+Manhattan \(= |1-4| + |2-6| = 3 + 4 = 7\).
+
+**Natural language**: “We’re not cutting diagonally—we’re summing separate moves along each feature.”
+
+**When it helps**: Robust when **outliers** in one dimension shouldn’t dominate the whole score (Euclidean squares large gaps).
+
+---
+
+### Quick comparison (for slides)
+
+| Question | Metric | Bigger is “more similar”? |
+|----------|--------|---------------------------|
+| Same direction / normalized embeddings? | **Cosine similarity** | Yes (closer to 1) |
+| Straight-line gap in feature space? | **Euclidean** | No — distance is **smaller** when closer |
+| City-block gap along axes? | **Manhattan** | No — distance is **smaller** when closer |
+| Raw weighted overlap? | **Dot product** | Often yes, but **scale** matters |
+
+---
+
+### How this ties to Qdrant / vector search
+
+- Many **text embedding** pipelines **normalize** vectors (length = 1). Then **dot product equals cosine similarity** on those vectors: same ranking for nearest neighbors.
+- Qdrant stores vectors and returns nearest neighbors using the **distance** you configure (cosine, dot, Euclidean, etc.). Always match the **distance** to how your embeddings were trained or normalized.
+
 ## Understanding Vector Dimensions
 
 ### **What are Dimensions?**

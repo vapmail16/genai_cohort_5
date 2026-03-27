@@ -1,0 +1,15 @@
+# Qdrant vector DB — HTTP API on :6333 (dashboard: :6334)
+# Usage: docker compose up -d
+# Then in Streamlit: "📦 Qdrant PDF lab (live)" with URL http://localhost:6333
+
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+volumes:
+  qdrant_storage:

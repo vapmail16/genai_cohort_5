@@ -11,10 +11,11 @@ import random
 
 # Import our custom modules
 from app_modules import (
-    show_embedding_models, show_index_types, 
+    show_embedding_models, show_index_types,
     show_query_types, show_performance_optimization,
     show_popular_technologies, show_real_world_examples
 )
+from qdrant_lab import show_qdrant_pdf_lab
 
 # Page configuration
 st.set_page_config(
@@ -78,7 +79,8 @@ def main():
             "🔍 Query Types",
             "⚡ Performance Optimization",
             "🌐 Popular Technologies",
-            "💼 Real-World Examples"
+            "💼 Real-World Examples",
+            "📦 Qdrant PDF lab (live)"
         ]
     )
     
@@ -100,6 +102,8 @@ def main():
         show_popular_technologies()
     elif page == "💼 Real-World Examples":
         show_real_world_examples()
+    elif page == "📦 Qdrant PDF lab (live)":
+        show_qdrant_pdf_lab()
 
 def show_home():
     st.markdown("""
@@ -117,6 +121,7 @@ def show_home():
     - **Performance Optimization**: Memory, computation, and query optimization
     - **Popular Technologies**: Qdrant, Pinecone, PG Vector, and Chroma
     - **Real-World Examples**: Practical applications and use cases
+    - **Qdrant PDF lab**: Ingest a PDF via the Qdrant HTTP API and inspect stored vectors
     
     ### How to Use This Tutorial:
     1. **Navigate** through modules using the sidebar
