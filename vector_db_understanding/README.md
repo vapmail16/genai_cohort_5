@@ -33,6 +33,8 @@ An interactive Streamlit application designed to help you learn and understand v
    ```
    (`sentence-transformers` pulls **PyTorch** — first install can take a few minutes.)
 
+> **Note:** `PRESENTER_NOTES.md` in this folder contains private presenter talking points for each page — not intended for students.
+
 ### Qdrant (for the PDF lab)
 
 **Recommended:** [Qdrant Cloud](https://cloud.qdrant.io/) — REST URL + API key (no Docker required).
@@ -128,6 +130,84 @@ python qdrant_pdf_pipeline.py path/to/slides.pdf
 - Requires **`QDRANT_URL` / `QDRANT_API_KEY`** in `vector_db_understanding/.env` (Qdrant Cloud) or any reachable Qdrant REST endpoint + full `requirements.txt` install
 - Upload a PDF, upsert chunks with **384-d** `all-MiniLM-L6-v2` embeddings (local model; **not** an LLM summarizer)
 - Inspect **vector dimension**, **L2 norm**, and **first N components** per point
+
+---
+
+## Presenter guide: talking points by Streamlit page
+
+Sidebar order matches `streamlit_app.py` → `main()` (the `selectbox` list and `if/elif` router).
+
+### 🏠 Home
+- **Purpose:** Orient the cohort — what the app covers and how to use the sidebar.
+- **Talking points:** One path is fundamentals → similarity (interactive) → similarity math (theory) → embeddings → indexes → live Qdrant lab. Emphasize **hands-on first**, formulas second.
+- **Code:** `show_home()` in `streamlit_app.py`.
+
+### 📐 Vector Fundamentals
+- **Purpose:** Vectors as lists of numbers; low vs high dimensions; storage intuition (32-bit vs quantized).
+- **Talking points:** Use sliders to show 2D/3D arrows; relate “dimensions” to embedding size (e.g. 384, 768, 1536). Mention curse of dimensionality at a high level.
+- **Code:** `show_vector_fundamentals()` in `streamlit_app.py`.
+
+### 🎯 Similarity Metrics
+- **Purpose:** Compare four metrics with **interactive** sliders and charts (movies, houses, jobs, grid).
+- **Talking points:** Cosine = direction; Euclidean = straight-line in feature space; dot = weighted overlap; Manhattan = robust “city block.” Tie each demo to a real decision (recommendations vs raw coordinates).
+- **Code:** `show_similarity_metrics()` → `show_cosine_similarity()`, `show_euclidean_distance()`, `show_dot_product()`, `show_manhattan_distance()` in `streamlit_app.py`. Shared numerics also exist in `similarity_math.py` (used by the theory page and tests).
+
+### 📐 Similarity math (theory & examples)
+- **Purpose:** Same ideas as the previous page, but **slide-style**: LaTeX formulas, worked numbers, comparison table, link to Qdrant/normalized vectors.
+- **Talking points:** Walk through one worked example per metric; open the **Check** expanders to show numbers match `similarity_math.py`. Bridge: “When embeddings are normalized, dot and cosine ranking align.”
+- **Code:** `similarity_theory_page.py` → `show_similarity_math_theory()`; imported from `streamlit_app.py`.
+
+### 🧠 Embedding Models
+- **Purpose:** BERT vs OpenAI-style story (dimensions, tokenization, when to use which).
+- **Talking points:** BERT 768D is illustrative; demo uses **simulated** random vectors for visualization — say so explicitly so nobody thinks you’re calling a live BERT API here.
+- **Code:** `show_embedding_models()` and helpers in `app_modules.py`.
+
+### 🏗️ Index Types
+- **Purpose:** HNSW, LSH, PQ — why vector DBs need indexes beyond brute force.
+- **Talking points:** Trade accuracy vs speed vs memory; connect to “why Qdrant/Pinecone exist.”
+- **Code:** `show_index_types()` in `app_modules.py`.
+
+### 🔍 Query Types
+- **Purpose:** kNN, range, ANN demos.
+- **Talking points:** kNN exact vs ANN approximate; how queries show up in products students use.
+- **Code:** `show_query_types()` in `app_modules.py`; demos in `query_functions.py`.
+
+### ⚡ Performance Optimization
+- **Purpose:** Memory, computation, query tuning.
+- **Talking points:** Quantization, batching, monitoring — operational concerns for production RAG.
+- **Code:** `show_performance_optimization()` in `app_modules.py`; logic in `performance_functions.py`.
+
+### 🌐 Popular Technologies
+- **Purpose:** Qdrant, Pinecone, pgvector, Chroma — positioning and comparisons.
+- **Talking points:** Hosted vs self-hosted; Postgres + vectors vs dedicated engine; link forward to the **Qdrant PDF lab** if you use Qdrant Cloud.
+- **Code:** `show_popular_technologies()` in `app_modules.py`; vendor sections in `technology_examples.py` (e.g. `show_qdrant_details`).
+
+### 💼 Real-World Examples
+- **Purpose:** E-commerce, recommendations, documents, images — use-case framing.
+- **Talking points:** Map each scenario to “what is being embedded” and “what is the similarity query?”
+- **Code:** `show_real_world_examples()` in `app_modules.py`; examples in `technology_examples.py`.
+
+### 📦 Qdrant PDF lab (live)
+- **Purpose:** **End-to-end ingestion** — PDF → text chunks → **local** Sentence-Transformers embeddings → upsert to **Qdrant** → scroll to inspect **vectors** (dimensions, head values, L2 norm). Optional **clear collection** for a clean re-run.
+- **Talking points:** This is **not** RAG Q&A (no LLM retrieval step in this lab). Show the dataframe preview after ingest; use **Scroll** to prove vectors are stored; mention **`.env`** for Cloud URL + API key.
+- **Code (UI):** `qdrant_lab.py` → `show_qdrant_pdf_lab()`.
+- **Code (ingestion pipeline — full path):**
+
+| Step | File | Function / notes |
+|------|------|------------------|
+| Env (URL, API key, collection) | `vector_db_env.py` | `load_vector_db_env()`, `get_qdrant_*`, `resolve_api_key()`; loaded from `vector_db_understanding/.env` |
+| PDF text | `qdrant_pdf_pipeline.py` | `extract_text_from_pdf()` (uses `pypdf`) |
+| Chunking | `qdrant_pdf_pipeline.py` | `chunk_text()` |
+| Embeddings | `qdrant_pdf_pipeline.py` | `embed_texts()` → `SentenceTransformer` (`default_embed_model_name()` default: `all-MiniLM-L6-v2`, **384-D**) |
+| Create collection if missing | `qdrant_pdf_pipeline.py` | `ensure_collection()` |
+| Upsert points | `qdrant_pdf_pipeline.py` | `ingest_pdf_to_qdrant()` (builds `PointStruct`, `client.upsert`) |
+| Inspect stored vectors | `qdrant_pdf_pipeline.py` | `scroll_points_with_vectors()`, `summarize_vector()` |
+| Delete collection (reset) | `qdrant_pdf_pipeline.py` | `delete_qdrant_collection()` |
+| CLI (same pipeline) | `qdrant_pdf_pipeline.py` | `main()` if `__name__ == "__main__"` |
+
+**Router entry:** `streamlit_app.py` imports `show_qdrant_pdf_lab` — see `main()` branch for `"📦 Qdrant PDF lab (live)"`.
+
+Deeper written theory (optional) lives in `vector_databases_technical_deep_dive.md` (including the **Cohort slides — Similarity metrics** section).
 
 ## 🎮 How to Use
 
