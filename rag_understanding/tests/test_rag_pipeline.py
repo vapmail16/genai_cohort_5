@@ -62,7 +62,9 @@ class TestRetrieveChunks:
         mock_hit.id = "abc"
         mock_hit.score = 0.85
         mock_hit.payload = {"text_preview": "some text", "chunk_index": 0, "source_file": "test.pdf"}
-        mock_client.search.return_value = [mock_hit]
+        mock_response = MagicMock()
+        mock_response.points = [mock_hit]
+        mock_client.query_points.return_value = mock_response
 
         result = retrieve_chunks(mock_client, "col", [0.1] * 384, top_k=3)
         assert len(result) == 1
@@ -80,7 +82,9 @@ class TestRetrieveChunks:
         high.id = "high"
         high.score = 0.9
         high.payload = {"text_preview": "high", "chunk_index": 1, "source_file": "f.pdf"}
-        mock_client.search.return_value = [high, low]
+        mock_response = MagicMock()
+        mock_response.points = [high, low]
+        mock_client.query_points.return_value = mock_response
 
         result = retrieve_chunks(mock_client, "col", [0.1] * 384, top_k=5, score_threshold=0.5)
         assert len(result) == 1
@@ -88,7 +92,9 @@ class TestRetrieveChunks:
 
     def test_returns_empty_list_when_no_hits(self):
         mock_client = MagicMock()
-        mock_client.search.return_value = []
+        mock_response = MagicMock()
+        mock_response.points = []
+        mock_client.query_points.return_value = mock_response
         result = retrieve_chunks(mock_client, "col", [0.1] * 384, top_k=3)
         assert result == []
 
@@ -191,7 +197,9 @@ class TestRunRag:
         mock_hit.payload = {"text_preview": "RAG context text", "chunk_index": 0, "source_file": "doc.pdf"}
 
         mock_client = MagicMock()
-        mock_client.search.return_value = [mock_hit]
+        mock_response = MagicMock()
+        mock_response.points = [mock_hit]
+        mock_client.query_points.return_value = mock_response
 
         mock_resp = MagicMock()
         mock_resp.choices = [MagicMock()]
@@ -224,7 +232,9 @@ class TestRunRag:
         mock_model = MagicMock()
         mock_model.encode.return_value = np.array([[0.1] * 384])
         mock_client = MagicMock()
-        mock_client.search.return_value = []
+        mock_empty_response = MagicMock()
+        mock_empty_response.points = []
+        mock_client.query_points.return_value = mock_empty_response
 
         mock_resp = MagicMock()
         mock_resp.choices = [MagicMock()]

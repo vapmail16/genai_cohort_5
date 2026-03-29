@@ -102,14 +102,15 @@ def retrieve_chunks(
     Teaching note: this is the "retrieval" in RAG. The quality of this step
     directly determines the quality of the generated answer.
     """
-    hits = client.search(
+    # qdrant-client >= 1.7 replaced .search() with .query_points()
+    response = client.query_points(
         collection_name=collection,
-        query_vector=query_vector,
+        query=query_vector,
         limit=top_k,
         with_payload=True,
     )
     chunks: list[RetrievedChunk] = []
-    for h in hits:
+    for h in response.points:
         if h.score < score_threshold:
             continue
         payload = h.payload or {}
