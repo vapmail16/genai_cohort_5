@@ -13,6 +13,7 @@ from app_modules import (
     show_rag_fundamentals, show_rag_architectures, show_implementation_strategies,
     show_real_world_applications, show_performance_optimization, show_best_practices
 )
+from rag_lab import show_rag_lab
 
 # Page configuration
 st.set_page_config(
@@ -95,7 +96,8 @@ def main():
             "⚙️ Implementation Strategies",
             "🌍 Real-World Applications",
             "⚡ Performance & Optimization",
-            "📋 Best Practices & Tips"
+            "📋 Best Practices & Tips",
+            "🤖 Live RAG Demo (Qdrant + OpenAI)",
         ]
     )
     
@@ -113,6 +115,8 @@ def main():
         show_performance_optimization()
     elif page == "📋 Best Practices & Tips":
         show_best_practices()
+    elif page == "🤖 Live RAG Demo (Qdrant + OpenAI)":
+        show_rag_lab()
 
 def show_home():
     st.markdown("""
@@ -128,6 +132,9 @@ def show_home():
     - **Real-World Applications**: Practical examples and use cases
     - **Performance & Optimization**: Making your RAG systems fast and efficient
     - **Best Practices**: Industry tips and common pitfalls to avoid
+    - **🤖 Live RAG Demo**: End-to-end pipeline using real Qdrant Cloud + OpenAI — ask questions
+      against documents you ingested, compare RAG vs No-RAG, inspect retrieved chunks, and
+      compare prompt strategies side-by-side
     
     ### How to Use This Tutorial:
     1. **Navigate** through modules using the sidebar
