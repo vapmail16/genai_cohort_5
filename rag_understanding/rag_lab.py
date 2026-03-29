@@ -100,6 +100,7 @@ def show_rag_lab():
         "🔍 Retrieval Inspector",
         "🔄 Strategy Comparison",
         "📊 Token Usage",
+        "🔧 Improve Low Scores",
     ])
 
     with tabs[0]:
@@ -116,6 +117,9 @@ def show_rag_lab():
 
     with tabs[4]:
         _tab_token_usage()
+
+    with tabs[5]:
+        _tab_improve_scores(qdrant_url, qdrant_key, collection, openai_key, top_k)
 
 
 # ── Tab 1 — Ask a Question ────────────────────────────────────────────────────
@@ -477,3 +481,243 @@ def _require_credentials(qdrant_url: str, openai_key: str | None) -> None:
     if openai_key is not None and not openai_key:
         st.error("OpenAI API key is required. Set it in the sidebar or `rag_understanding/.env`.")
         st.stop()
+
+
+# ── Tab 6 — Improve Low Scores ────────────────────────────────────────────────
+
+def _tab_improve_scores(qdrant_url, qdrant_key, collection, openai_key, top_k):
+    """
+    Demo: "score < 0.8 — how do we improve that?"
+
+    Shows three independent, composable techniques:
+      1. Query Expansion  — a richer query embeds closer to relevant chunks
+      2. HNSW ef tuning   — higher ef explores more graph nodes → better recall
+      3. Re-ranking       — cross-encoder rescores chunks for true relevance
+
+    The page runs each technique one at a time and shows score charts so
+    participants can see the improvement visually.
+    """
+    import pandas as pd
+    import plotly.graph_objects as go
+
+    st.markdown("## 🔧 Score < 0.8? Here's How to Improve It")
+    st.markdown(
+        """
+        When retrieval scores come back below **0.8**, it doesn't mean the
+        information isn't in the database — it often means the search isn't
+        finding it efficiently. Three techniques fix this, in order of cost:
+
+        | Technique | What it does | Extra cost |
+        |---|---|---|
+        | **1. Query Expansion** | Rewrites your query with synonyms & related terms | 1 cheap LLM call |
+        | **2. HNSW ef tuning** | Tells Qdrant to explore more graph nodes | ~5–20 ms extra latency |
+        | **3. Re-ranking** | Cross-encoder rescores every chunk against the query | ~200–500 ms locally |
+
+        > **Demo flow:** enter a short/vague query, see the baseline scores, then
+        > apply each technique and watch the scores rise.
+        """
+    )
+
+    st.markdown("---")
+
+    query = st.text_input(
+        "Enter a short or vague query (something that gives low scores)",
+        placeholder='e.g. "GDPR" or "data" or "rights"',
+        key="improve_query",
+    )
+
+    ef_value = st.select_slider(
+        "HNSW ef value (technique 2)",
+        options=[32, 64, 128, 256, 512],
+        value=128,
+        help="Default in Qdrant is typically 128. Higher = better recall, slightly slower.",
+        key="improve_ef",
+    )
+
+    run_rerank = st.checkbox(
+        "Also run re-ranking (technique 3) — downloads cross-encoder model on first run (~80 MB)",
+        value=False,
+        key="improve_rerank",
+    )
+
+    if st.button("🔬 Run improvement demo", key="improve_btn", type="primary"):
+        if not query.strip():
+            st.error("Please enter a query.")
+            return
+        _require_credentials(qdrant_url, None)
+
+        rp = _pipeline()
+
+        # ── Step 0: baseline retrieval ─────────────────────────────────────
+        st.markdown("### Step 1 — Baseline retrieval")
+        with st.spinner("Embedding original query and retrieving…"):
+            try:
+                from qdrant_client import QdrantClient
+                client = QdrantClient(url=qdrant_url, api_key=qdrant_key or None)
+                baseline_vec = rp.embed_query(query)
+                baseline_chunks = rp.retrieve_chunks(
+                    client, collection, baseline_vec, top_k=top_k,
+                )
+            except Exception as exc:
+                st.error(f"Retrieval error: {exc}")
+                return
+
+        if not baseline_chunks:
+            st.warning("No chunks retrieved at all. Make sure a PDF has been ingested.")
+            return
+
+        _show_score_chart(baseline_chunks, "Baseline scores", "#ef553b")
+        st.caption(
+            f"Average score: **{sum(c.score for c in baseline_chunks)/len(baseline_chunks):.3f}** "
+            f"· Chunks above 0.8: **{sum(1 for c in baseline_chunks if c.score >= 0.8)}**"
+        )
+
+        # ── Step 1: Score threshold breakdown ──────────────────────────────
+        st.markdown("### Step 2 — What different thresholds give you")
+        st.markdown(
+            "This shows why just *lowering* the threshold is the wrong answer — "
+            "you get more chunks but they're less relevant."
+        )
+        comparison = rp.score_threshold_comparison(baseline_chunks, [0.5, 0.6, 0.7, 0.8])
+        thresh_df = pd.DataFrame({
+            "Threshold": [f"≥ {t}" for t in [0.5, 0.6, 0.7, 0.8]],
+            "Chunks passing": [len(comparison[t]) for t in [0.5, 0.6, 0.7, 0.8]],
+        })
+        st.dataframe(thresh_df, hide_index=True, use_container_width=False)
+        st.markdown(
+            "> **Lesson:** Lowering the threshold lets in noise. "
+            "The techniques below raise the *actual scores* instead."
+        )
+
+        # ── Step 2: Query Expansion ────────────────────────────────────────
+        st.markdown("### Technique 1 — Query Expansion")
+
+        if not openai_key:
+            st.info("OpenAI key not set — skipping query expansion (needs 1 LLM call).")
+            expanded_chunks = baseline_chunks
+            expanded_query = query
+        else:
+            with st.spinner("Asking LLM to expand the query…"):
+                try:
+                    expanded_query = rp.expand_query(query, api_key=openai_key)
+                    expanded_vec = rp.embed_query(expanded_query)
+                    expanded_chunks = rp.retrieve_chunks(
+                        client, collection, expanded_vec, top_k=top_k,
+                    )
+                except Exception as exc:
+                    st.error(f"Query expansion error: {exc}")
+                    expanded_chunks = baseline_chunks
+                    expanded_query = query
+
+            st.markdown(f"**Original query:** `{query}`")
+            st.markdown(f"**Expanded query:** `{expanded_query}`")
+            _show_score_chart(expanded_chunks, "After query expansion", "#00cc96")
+            _show_score_delta(baseline_chunks, expanded_chunks, label="query expansion")
+
+        # ── Step 3: HNSW ef tuning ─────────────────────────────────────────
+        st.markdown(f"### Technique 2 — HNSW ef = {ef_value}")
+        with st.spinner(f"Retrieving with ef={ef_value}…"):
+            try:
+                ef_chunks = rp.retrieve_with_ef(
+                    client, collection, baseline_vec,
+                    top_k=top_k, ef=ef_value,
+                )
+            except Exception as exc:
+                st.warning(f"ef tuning not supported by this Qdrant plan: {exc}")
+                ef_chunks = baseline_chunks
+
+        _show_score_chart(ef_chunks, f"After HNSW ef={ef_value}", "#636efa")
+        _show_score_delta(baseline_chunks, ef_chunks, label=f"ef={ef_value}")
+        st.markdown(
+            f"> The HNSW index now explores **{ef_value}** candidate nodes instead of the default, "
+            "giving it a better chance of finding highly relevant vectors."
+        )
+
+        # ── Step 4: Re-ranking (optional) ──────────────────────────────────
+        if run_rerank:
+            st.markdown("### Technique 3 — Cross-encoder Re-ranking")
+            st.markdown(
+                "The cross-encoder reads the query and each chunk **together** "
+                "and produces a much more accurate relevance score. "
+                "The order (and scores) will change."
+            )
+            with st.spinner("Loading cross-encoder model and re-ranking…"):
+                try:
+                    reranked_chunks = rp.rerank_chunks(query, baseline_chunks)
+                except Exception as exc:
+                    st.error(f"Re-ranking error: {exc}")
+                    reranked_chunks = baseline_chunks
+
+            _show_score_chart(reranked_chunks, "After re-ranking", "#ab63fa")
+            _show_score_delta(baseline_chunks, reranked_chunks, label="re-ranking")
+
+            with st.expander("Why did the order change?"):
+                st.markdown(
+                    """
+                    **Bi-encoder (cosine similarity)** embeds the query and each
+                    chunk *separately*, then measures the angle between the vectors.
+                    It's fast but loses nuance.
+
+                    **Cross-encoder** feeds the query and chunk *together* as a
+                    single input — it can see exactly which words in the chunk
+                    answer the query. Much more accurate, but ~10–50× slower.
+
+                    **Production pattern:** bi-encoder retrieves the top-100,
+                    cross-encoder re-ranks to top-5 before sending to the LLM.
+                    """
+                )
+
+        # ── Summary ────────────────────────────────────────────────────────
+        st.markdown("---")
+        st.markdown("### 📋 Summary")
+        st.success(
+            "**Three techniques to improve low scores — no re-ingestion needed:**\n\n"
+            "1. **Query Expansion** → embed a richer query → vectors land closer to relevant chunks\n"
+            "2. **HNSW ef tuning** → explore more graph nodes → find vectors that the default search missed\n"
+            "3. **Re-ranking** → cross-encoder reads query + chunk together → much more accurate scores\n\n"
+            "Stack all three for maximum improvement."
+        )
+
+
+# ── Score chart helpers ───────────────────────────────────────────────────────
+
+def _show_score_chart(chunks, title: str, color: str) -> None:
+    """Horizontal bar chart of chunk scores."""
+    import plotly.graph_objects as go
+
+    labels = [f"[{i+1}] {c.text[:35]}…" for i, c in enumerate(chunks)]
+    scores = [c.score for c in chunks]
+
+    fig = go.Figure(go.Bar(
+        x=scores, y=labels, orientation="h",
+        marker_color=color,
+        text=[f"{s:.3f}" for s in scores],
+        textposition="outside",
+    ))
+    fig.update_layout(
+        title=title,
+        xaxis=dict(range=[0, 1], title="Cosine similarity score"),
+        yaxis=dict(autorange="reversed"),
+        height=max(250, len(chunks) * 50 + 80),
+        margin=dict(l=10, r=60, t=40, b=20),
+    )
+    # Reference line at 0.8
+    fig.add_vline(x=0.8, line_dash="dash", line_color="red",
+                  annotation_text="0.8 target", annotation_position="top right")
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _show_score_delta(before: list, after: list, label: str) -> None:
+    """Show average score before vs after as a compact metric row."""
+    avg_before = sum(c.score for c in before) / len(before) if before else 0
+    avg_after = sum(c.score for c in after) / len(after) if after else 0
+    above_before = sum(1 for c in before if c.score >= 0.8)
+    above_after = sum(1 for c in after if c.score >= 0.8)
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Avg score before", f"{avg_before:.3f}")
+    c2.metric(f"Avg score after {label}", f"{avg_after:.3f}",
+              delta=f"{avg_after - avg_before:+.3f}")
+    c3.metric("Chunks ≥ 0.8", f"{above_after}",
+              delta=f"{above_after - above_before:+d} vs baseline")
+
