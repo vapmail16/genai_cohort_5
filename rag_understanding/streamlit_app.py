@@ -14,6 +14,7 @@ from app_modules import (
     show_real_world_applications, show_performance_optimization, show_best_practices
 )
 from rag_lab import show_rag_lab
+from advanced_rag_tab import show_advanced_rag
 
 # Page configuration
 st.set_page_config(
@@ -98,6 +99,7 @@ def main():
             "⚡ Performance & Optimization",
             "📋 Best Practices & Tips",
             "🤖 Live RAG Demo (Qdrant + OpenAI)",
+            "🚀 Advanced RAG",
         ]
     )
     
@@ -117,6 +119,8 @@ def main():
         show_best_practices()
     elif page == "🤖 Live RAG Demo (Qdrant + OpenAI)":
         show_rag_lab()
+    elif page == "🚀 Advanced RAG":
+        show_advanced_rag()
 
 def show_home():
     st.markdown("""
