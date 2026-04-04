@@ -319,6 +319,274 @@ def _section_latest_principles() -> None:
             """
         )
 
+    # ── Plain-language deep-dives (appended) ──────────────────────────────────
+
+    st.markdown("---")
+    st.markdown("### 💬 Plain-Language Explainers — Each Pattern in Depth")
+
+    with st.expander("🔀 Multi-vector Retrieval — Everyday Analogy & Worked Example", expanded=False):
+        st.markdown(
+            """
+            #### Think of it like searching for a book in a library
+
+            Imagine you walk into a library and ask: *"Do you have anything about data privacy fines?"*
+
+            The librarian uses **three systems** at the same time:
+
+            | System | How it works | What it's good at |
+            |--------|-------------|-------------------|
+            | 🧠 **Dense (semantic)** | Understands *meaning* — finds books about "data protection penalties" even if you said "fines" | Paraphrases, concepts |
+            | 🔑 **Sparse (BM25/keyword)** | Finds exact words — "GDPR Article 83" | Product codes, proper names, jargon |
+            | 📖 **Keyword exact match** | Regex/grep — finds the literal string | Reference numbers, IDs |
+
+            **Why not just use one?**
+
+            > You ask: *"What is the FCA PS24/1 rule?"*
+            >
+            > - Dense search returns: *"Financial Conduct Authority policies on consumer protection"* — close but wrong document
+            > - Keyword search finds: the exact document titled **"FCA PS24/1"** immediately
+            >
+            > You ask: *"What are the rules about treating customers fairly?"*
+            >
+            > - Keyword search finds nothing — that phrase doesn't appear verbatim
+            > - Dense search finds: **"TCF (Treating Customers Fairly) framework, Principle 6"** — exactly right
+
+            **Together they never miss.** You fuse the results with RRF (see below) so the
+            document that appears near the top of ALL three lists wins.
+
+            #### Real-world impact
+            Studies on domain-specific corpora (legal, medical, financial) show:
+            - Dense-only: ~72% recall
+            - Sparse-only: ~65% recall
+            - Hybrid: **~89% recall** — consistently beats either alone
+            """
+        )
+
+    with st.expander("🔍 Query Expansion — Worked Example Step by Step", expanded=False):
+        st.markdown(
+            """
+            #### The problem: your query is too short
+
+            When a user types *"GDPR fines"*, the embedding model converts that 2-word phrase
+            into a vector. That vector sits in a specific spot in 384-dimensional space.
+
+            The relevant chunks in your database might say:
+            - *"Article 83(5) imposes administrative fines up to €20 million"*
+            - *"The ICO issued a penalty notice for…"*
+            - *"Maximum sanctions under the UK Data Protection Act…"*
+
+            None of these contain the words "GDPR fines" — they use synonyms.
+            The vector for *"GDPR fines"* may not be close enough to retrieve them.
+
+            #### The fix: ask the LLM to be your search expert
+
+            ```python
+            EXPAND_PROMPT = \"\"\"
+            You are a search query expert. Rewrite this query as a rich,
+            descriptive sentence (max 30 words) using synonyms and related concepts.
+            Only return the expanded query, nothing else.
+
+            Query: {query}
+            \"\"\"
+
+            # Original query
+            query = "GDPR fines"
+
+            # Expanded (what the LLM returns)
+            expanded = "GDPR data protection financial penalties Article 83 ICO enforcement \
+sanctions European data privacy regulation fines maximum €20 million"
+
+            # Now embed the EXPANDED query, not the original
+            vector = embed(expanded)
+            results = qdrant.search(vector)
+            ```
+
+            #### Before vs After
+
+            | | Original query | Expanded query |
+            |-|---------------|----------------|
+            | Query sent to embed | `"GDPR fines"` | `"GDPR financial penalties Article 83 ICO enforcement…"` |
+            | Top result score | 0.61 | 0.84 |
+            | Relevant chunks in top-5 | 2/5 | 5/5 |
+
+            #### When does it help most?
+            - Short queries (1–3 words)
+            - Technical jargon the user doesn't know how to phrase
+            - Non-native speakers who use informal language
+            - Voice search where queries are naturally short
+            """
+        )
+
+    with st.expander("💡 HyDE — The Counterintuitive Trick That Works", expanded=False):
+        st.markdown(
+            """
+            #### Normal RAG: embed the question, find similar documents
+
+            ```
+            User: "What is the maximum GDPR fine?"
+                       ↓  embed
+            Query vector: [0.12, -0.34, 0.88, ...]
+                       ↓  cosine search
+            Finds: chunks about "GDPR enforcement", "data protection rules"
+            ```
+
+            This works — but the question and the answer *look different* in embedding space.
+            A question lives near other questions. The answer lives near other answers.
+
+            #### HyDE: embed a hypothetical answer instead
+
+            ```python
+            # Step 1: Ask the LLM to imagine the answer
+            hyde_prompt = f"Write a paragraph that would directly answer: {query}"
+            hypothetical = llm(hyde_prompt)
+            # Returns: "Under Article 83(5) of the GDPR, the maximum administrative
+            #           fine is €20 million or 4% of total annual worldwide turnover,
+            #           whichever is higher. The ICO in the UK applies equivalent..."
+
+            # Step 2: Embed the HYPOTHETICAL ANSWER (not the question)
+            vector = embed(hypothetical)
+
+            # Step 3: Search — now you're matching answer-to-answer, not question-to-answer
+            results = qdrant.search(vector)
+            ```
+
+            #### Why does this work?
+
+            Think of it like matching resumes to a job.
+
+            - Normal: you search using the *job title* ("Software Engineer")
+            - HyDE: you first write an *ideal candidate description*, then match resumes to that
+
+            The ideal description lives in the same space as real resumes.
+            The job title doesn't.
+
+            #### When to use HyDE vs Query Expansion
+
+            | Situation | Better choice |
+            |-----------|--------------|
+            | Query is vague or short | Query Expansion |
+            | Query is clear but documents use different vocabulary | HyDE |
+            | Domain is highly technical (legal, medical) | HyDE |
+            | You want to combine both | Run both, fuse with RRF |
+            | Latency is critical (< 200ms) | Query Expansion (HyDE adds 1 LLM call) |
+            """
+        )
+
+    with st.expander("🏆 Ranking & Reranking — Why Order Matters More Than You Think", expanded=False):
+        st.markdown(
+            """
+            #### The "Lost in the Middle" problem
+
+            Research (Liu et al., 2023) showed that GPT-4 performs significantly worse
+            when the relevant information is in the **middle** of a long context.
+            It pays most attention to the **beginning** and **end**.
+
+            If you retrieve 10 chunks and the answer is in chunk 7 — the LLM may ignore it.
+
+            **Reranking solves this** by putting the most relevant chunks first
+            so the LLM sees them at the top.
+
+            #### Bi-encoder vs Cross-encoder — the key difference
+
+            ```
+            Bi-encoder (what Qdrant/cosine does):
+            ┌─────────────┐         ┌──────────────┐
+            │    Query    │ → vec → │              │
+            └─────────────┘         │  Score =     │
+                                    │  cos(q, d)   │
+            ┌─────────────┐         │              │
+            │  Document   │ → vec → │              │
+            └─────────────┘         └──────────────┘
+
+            They're encoded SEPARATELY, then compared.
+            Fast but loses nuance — can't see word interactions.
+
+            Cross-encoder (reranker):
+            ┌──────────────────────────────────┐
+            │  [Query] [SEP] [Document]        │
+            │                                  │
+            │  Transformer reads BOTH together │
+            │  → outputs relevance score 0–1   │
+            └──────────────────────────────────┘
+
+            Reads them TOGETHER — sees exactly which words in the
+            document answer which words in the query. Much more accurate.
+            ```
+
+            #### Worked example
+
+            Query: *"What side effects does aspirin have on the stomach?"*
+
+            | Chunk | Bi-encoder score | Cross-encoder score | Why |
+            |-------|-----------------|--------------------|----|
+            | "Aspirin is an analgesic and antipyretic drug" | 0.78 | 0.21 | Mentions aspirin but not stomach |
+            | "NSAIDs can cause gastric irritation and ulcers" | 0.71 | 0.88 | Directly answers — cross-encoder gets it |
+            | "Aspirin reduces fever by blocking COX enzymes" | 0.69 | 0.19 | Mechanism, not side effects |
+            | "Aspirin may cause gastric bleeding especially in elderly" | 0.65 | 0.94 | Best answer — bi-encoder ranked it 4th! |
+
+            Without reranking: you'd send the wrong chunk first to the LLM.
+            With reranking: the genuinely useful chunk goes first.
+
+            #### The two-stage pattern in numbers
+
+            ```
+            Without reranking:  retrieve top-5, send all 5 to LLM
+              → avg faithfulness: 0.71
+              → cost: 2,500 tokens per query
+
+            With reranking:     retrieve top-20, rerank, send top-3
+              → avg faithfulness: 0.91   (+28%)
+              → cost: 1,200 tokens per query  (52% cheaper)
+            ```
+            """
+        )
+
+    with st.expander("📐 RRF Deep Dive — Building Intuition with a Full Example", expanded=False):
+        st.markdown(
+            """
+            #### Setup: you've run three searches for "GDPR fines UK"
+
+            ```
+            Dense search results:         Sparse (BM25) results:    Keyword results:
+            1. Doc-C (GDPR UK fines)      1. Doc-B (exact phrase)   1. Doc-B
+            2. Doc-A (EU data law)        2. Doc-C                  2. Doc-D
+            3. Doc-D (ICO penalties)      3. Doc-A                  3. Doc-C
+            4. Doc-B (ICO enforcement)    4. Doc-E                  4. Doc-A
+            5. Doc-E (privacy rules)      5. Doc-D                  5. Doc-E
+            ```
+
+            #### Calculate RRF score for each document (k=60)
+
+            | Doc | Dense rank | Sparse rank | Keyword rank | RRF score |
+            |-----|-----------|------------|-------------|-----------|
+            | **Doc-C** | 1 → 1/61 = 0.01639 | 2 → 1/62 = 0.01613 | 3 → 1/63 = 0.01587 | **0.04839** |
+            | **Doc-B** | 4 → 1/64 = 0.01563 | 1 → 1/61 = 0.01639 | 1 → 1/61 = 0.01639 | **0.04841** |
+            | **Doc-A** | 2 → 1/62 = 0.01613 | 3 → 1/63 = 0.01587 | 4 → 1/64 = 0.01563 | **0.04763** |
+            | **Doc-D** | 3 → 1/63 = 0.01587 | 5 → 1/65 = 0.01538 | 2 → 1/62 = 0.01613 | **0.04738** |
+            | **Doc-E** | 5 → 1/65 = 0.01538 | 4 → 1/64 = 0.01563 | 5 → 1/65 = 0.01538 | **0.04639** |
+
+            #### Final ranking after RRF
+
+            ```
+            1. Doc-B  (0.04841) ← was rank 4 in dense! Dominated keyword + sparse
+            2. Doc-C  (0.04839) ← was rank 1 in dense, consistent across all
+            3. Doc-A  (0.04763)
+            4. Doc-D  (0.04738)
+            5. Doc-E  (0.04639)
+            ```
+
+            #### Key insight
+
+            Doc-B was ranked **4th** by semantic search but was **#1 in two other signals**.
+            RRF correctly promotes it because **consistent performance across multiple signals
+            is stronger evidence than a single #1 ranking**.
+
+            The constant k=60 is there to prevent a single rank-1 result from completely
+            dominating. Without it: 1/1 = 1.0 vs 1/2 = 0.5 — first place wins too easily.
+            With k=60: 1/61 = 0.0164 vs 1/62 = 0.0161 — only a tiny gap, consistency wins.
+            """
+        )
+
 
 # ── Section 3: Advanced Features ─────────────────────────────────────────────
 
@@ -425,8 +693,129 @@ def _section_advanced_features() -> None:
         "because you remove the distracting noise that causes the LLM to wander."
     )
 
+    # ── Plain-language deep-dives (appended) ──────────────────────────────────
 
-# ── Section 4: RAG Evolution ──────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 💬 Plain-Language Explainers — Advanced Features in Depth")
+
+    with st.expander("🔀 Hybrid Search — Why It Beats Vector-Only on Real Queries", expanded=False):
+        st.markdown(
+            """
+            #### The problem with pure vector search
+
+            Vector search finds *semantically similar* content. But similarity ≠ relevance.
+
+            > Query: *"What does regulation PS24/1 say about mortgage advice?"*
+            >
+            > Vector search returns: documents about "mortgage lending guidance", "consumer advice rules"
+            > — these are *semantically similar* but **none of them is PS24/1**.
+            >
+            > BM25 (keyword) search returns: the exact document titled "PS24/1"
+            > — because it matched the *exact string*.
+
+            #### Real-world query types and which search wins
+
+            | Query type | Example | Best signal |
+            |-----------|---------|-------------|
+            | Exact reference | "FCA PS24/1", "SKU-X4492" | BM25 |
+            | Concept / paraphrase | "rules about treating customers fairly" | Dense vector |
+            | Mixed | "FCA rules on customer fairness" | **Hybrid** |
+            | Medical term | "Pfizer Comirnaty" | BM25 |
+            | Symptom description | "chest tightness when climbing stairs" | Dense vector |
+
+            #### How hybrid search works in practice
+
+            ```
+            User query: "GDPR penalties for data breach"
+
+            ┌──────────────────┐    ┌──────────────────┐
+            │  Dense search    │    │  BM25 search     │
+            │  (semantic)      │    │  (keyword)       │
+            │                  │    │                  │
+            │  1. Doc-A (0.87) │    │  1. Doc-C (12.3) │
+            │  2. Doc-C (0.82) │    │  2. Doc-A (10.1) │
+            │  3. Doc-E (0.79) │    │  3. Doc-B (8.7)  │
+            └──────────────────┘    └──────────────────┘
+                        ↓                   ↓
+                    ┌───────────────────────┐
+                    │   RRF Fusion          │
+                    │   Final ranking:      │
+                    │   1. Doc-A  (both top)│
+                    │   2. Doc-C  (both top)│
+                    │   3. Doc-B            │
+                    └───────────────────────┘
+                              ↓
+                    Send top-3 to LLM
+            ```
+
+            #### Why "sparse is free"
+
+            BM25 doesn't need a GPU or an embedding model API call.
+            It runs in milliseconds on a CPU using simple term frequency math.
+            Adding it to your pipeline costs almost nothing but lifts recall significantly.
+
+            **Bottom line:** if you're building a production RAG system in 2025,
+            hybrid search is the default — not an optional extra.
+            """
+        )
+
+    with st.expander("✂️ Context Compression — Simple Analogy & When to Use It", expanded=False):
+        st.markdown(
+            """
+            #### The problem: you retrieved a newspaper but only needed one paragraph
+
+            Imagine your RAG system retrieves 5 chunks about aspirin.
+            Each chunk is 512 tokens. Total: 2,560 tokens sent to GPT-4.
+
+            But the actual answer — "aspirin can cause gastric bleeding" —
+            is **one sentence** buried in chunk 3. The other 2,540 tokens are noise.
+
+            You're paying for 2,560 tokens but getting value from ~20.
+
+            #### What LLMLingua actually does
+
+            It uses a small language model to score every token:
+            *"Given this query, how likely is this token to be important?"*
+
+            ```
+            Query: "What are aspirin's side effects on the stomach?"
+
+            Original chunk (50 tokens):
+            "Aspirin, discovered in 1897 by Felix Hoffmann at Bayer,
+            is a widely used analgesic. It works by inhibiting COX enzymes.
+            It can cause gastric irritation and bleeding, particularly
+            in elderly patients or those with a history of ulcers."
+
+            After LLMLingua compression (25 tokens, 50% reduction):
+            "Aspirin ... cause gastric irritation bleeding particularly
+            elderly patients history ulcers."
+
+            The meaning is preserved. The fluff is gone.
+            ```
+
+            #### When to use compression
+
+            | Situation | Use compression? |
+            |-----------|-----------------|
+            | 1–2 short chunks retrieved | ❌ Not worth the overhead |
+            | 5+ chunks, context > 2,000 tokens | ✅ Yes |
+            | Legal / medical (exact wording matters) | ⚠️ Be cautious — verify output |
+            | Latency is critical (< 500ms) | ❌ Adds ~200ms |
+            | Cost is critical (many queries/day) | ✅ Saves 60–70% LLM cost |
+
+            #### The "lost in the middle" connection
+
+            Compression also solves the attention problem.
+            LLMs pay less attention to content in the middle of long prompts.
+
+            A compressed prompt of 400 tokens means the LLM reads *everything*.
+            A full prompt of 3,000 tokens means it may skim the middle.
+
+            **Think of it like a meeting summary vs full transcript.**
+            The summary forces you to engage with every point.
+            The transcript buries the important bits.
+            """
+        )
 
 def _section_evolution() -> None:
     st.markdown("### 📈 RAG Evolution & Industry Trends")
