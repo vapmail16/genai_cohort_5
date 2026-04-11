@@ -7,7 +7,6 @@
 1. [**Introduction & Setup**](#1-introduction--setup)
 2. [**Core Concepts**](#2-core-concepts)
 
-
 3. [**Building Your First Graph**](#3-building-your-first-graph)
 4. message conversations
 5. [**Tool Calling**](#5-tool-calling)
@@ -149,8 +148,7 @@ mkdir -p demos/04_react_pattern
 mkdir -p demos/05_memory_persistence
 mkdir -p demos/06_real_world_project
 
-cd demos/01_basic_graph
-touch activity_selector.py
+
 
 ## 2. Core Concepts
 
@@ -189,6 +187,9 @@ Input Data → [Process A] → [Decision Point] → [Process B] or [Process C] �
 
 **Goal:** Build a simple AI that decides what activity someone will do based on a random "mood".
 
+
+cd demos/01_basic_graph
+touch activity_selector.py
 
 ****
 

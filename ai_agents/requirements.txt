@@ -1,0 +1,11 @@
+langchain-core
+langgraph
+langgraph-checkpoint
+langgraph-prebuilt
+jupyter
+ipykernel
+langchain-openai
+pandas
+pydantic
+pydantic_core
+python-dotenv
