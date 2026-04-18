@@ -58,4 +58,4 @@ GenAI cohort materials, demos, and the **IT Support Agent** capstone (FastAPI + 
 
 ---
 
-*Last updated: 2026-03-25 — root README lists actual `mcp/` files (no `sample documents/` folder); capstone chat demo and dependency notes unchanged.*
+*Last updated: 2026-04-15 — removed obsolete final-week appendix from root README.*

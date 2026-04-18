@@ -50,10 +50,10 @@ This project follows **gold standard TDD** practices:
 2. **🟢 GREEN**: Write minimal code to pass the test
 3. **🔵 REFACTOR**: Improve code while keeping tests green
 
-**Current Status**: 🔴 **RED PHASE**
-- ✅ 22 database model tests written
-- ❌ 0 tests passing (expected - no implementation yet!)
-- 📋 Ready to implement code to make tests green
+**Current Status**: 🟢 **ACTIVE DEVELOPMENT (core flows implemented)**
+- ✅ FastAPI + React demo workflow is running
+- ✅ Unit/integration suite passes locally (`206 passed, 1 skipped`)
+- ✅ KB RAG + DB RAG + agentic MCP demo tracks available
 
 ### **Why TDD?**
 
@@ -124,7 +124,7 @@ it-support-agent/
 │       ├── test_ragas_metrics.py
 │       └── test_hallucination_detection.py
 ├── IT_SUPPORT_TDD_SPEC.md      # ✅ TDD specification
-├── TDD_PROGRESS.md             # ✅ Progress tracker
+├── HOW_IT_WORKS.md             # ✅ Runtime architecture and flow notes
 ├── it_support_capstone_plan.md # ✅ Original plan
 ├── pytest.ini                  # ✅ Pytest configuration
 ├── .gitignore                  # ✅ Created
@@ -253,9 +253,9 @@ pytest tests/unit/test_chat_demo_tracks.py tests/unit/test_teaching_api_basics.p
 
 ## 📖 Documentation
 
-- **[IT_SUPPORT_TDD_SPEC.md](IT_SUPPORT_TDD_SPEC.md)**: Comprehensive TDD specification
-- **[TDD_PROGRESS.md](TDD_PROGRESS.md)**: Current progress and next steps
-- **[it_support_capstone_plan.md](it_support_capstone_plan.md)**: Original project plan
+- **[HOW_IT_WORKS.md](HOW_IT_WORKS.md)**: Current runtime flow and file map
+- **[IT_SUPPORT_TDD_SPEC.md](IT_SUPPORT_TDD_SPEC.md)**: TDD testing specification
+- **[it_support_capstone_plan.md](it_support_capstone_plan.md)**: Original plan and milestone intent
 
 ---
 
@@ -298,15 +298,10 @@ open htmlcov/index.html
 
 ### Current Test Statistics
 
-- **Total Tests**: 22
-- **Tests Passing**: 0 (Red phase - expected!)
-- **Tests Failing**: 22 (Red phase - expected!)
-- **Coverage**: 0% (No implementation yet)
-
-**Priority Breakdown:**
-- P0 (Critical): 13 tests
-- P1 (High): 8 tests
-- P2 (Medium): 1 test
+- **Total Tests**: 207
+- **Passing**: 206
+- **Skipped**: 1
+- **Last Full Run**: local `pytest -q` on 2026-03-28
 
 ---
 
@@ -315,15 +310,15 @@ open htmlcov/index.html
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React + Vite + Tailwind CSS |
-| API | FastAPI + SSE streaming |
-| Orchestration | LangGraph (multi-agent) |
-| RAG | LangChain LCEL + Chroma |
+| API | FastAPI + chat/ticket endpoints |
+| Orchestration | LangGraph-style multi-agent flow + chat demo router |
+| RAG | LangChain + Qdrant |
 | Embeddings | OpenAI / nomic-embed-text |
 | LLM | OpenAI GPT-4o / Ollama |
 | MCP | TypeScript MCP SDK |
 | Database | SQLite + SQLAlchemy |
 | Testing | pytest + pytest-cov + RAGAS |
-| Deployment | Docker + Railway |
+| Deployment | Local dev setup (Docker optional) |
 
 ---
 
@@ -369,49 +364,26 @@ open htmlcov/index.html
 
 ### ✅ Completed
 
-1. TDD specification document created
-2. Test infrastructure set up (pytest, fixtures, mocks)
-3. 22 database model tests written (Red phase)
-4. Golden datasets created for RAG and triage testing
-5. Project structure defined
-
-### 🔴 Current Phase: RED (Database Models)
-
-**22 tests written, 0 passing** - Ready for implementation!
+1. Database models/CRUD, RAG ingestion/retrieval, and chat tracks are implemented
+2. Agentic MCP pipeline is integrated with ticket creation + trace output
+3. Frontend demo menu/track UX and teaching routes are wired
+4. Full test suite is passing locally (with one intentional skip)
 
 ### 📋 Next Actions
 
-1. **Implement `backend/database/models.py`** (Green phase)
-   - Define Ticket, Message, Enums
-   - Run tests: `pytest tests/unit/test_database_models.py`
-   - Expected: All 22 tests pass ✅
-
-2. **Write CRUD tests** (Red phase)
-   - Create `tests/unit/test_database_crud.py`
-   - Write ~15 tests for CRUD operations
-   - Run tests: expect failures
-
-3. **Implement `backend/database/crud.py`** (Green phase)
-   - Implement all CRUD functions
-   - Make tests pass
-
-4. **Continue TDD cycle** for RAG, Agents, API, MCP
+1. Keep docs in sync with runtime behavior and endpoint contracts
+2. Add focused tests for any new demo-track behavior before implementation
+3. Improve deployment/ops guidance once target hosting is finalized
 
 ---
 
 ## 📊 Project Milestones
 
-- [x] **Week 0**: TDD setup and infrastructure
-- [ ] **Week 1**: Database layer (TDD)
-- [ ] **Week 2-3**: RAG system (TDD)
-- [ ] **Week 4-5**: Multi-agent system (TDD)
-- [ ] **Week 6**: API endpoints (TDD)
-- [ ] **Week 7**: MCP server (TDD)
-- [ ] **Week 8**: Frontend + E2E tests
-- [ ] **Week 9**: AI quality tests (RAGAS)
-- [ ] **Week 10**: Deployment + Documentation
-
-**Target**: 500+ tests, >90% coverage
+- [x] Core API, DB, and retrieval pipelines implemented
+- [x] Agentic MCP demo track and tool orchestration implemented
+- [x] Frontend chat demo tracks integrated
+- [x] Teaching pipeline routes included
+- [ ] Deployment hardening and environment-specific runbooks
 
 ---
 
@@ -448,14 +420,6 @@ MIT License - GenAI Cohort 5 Capstone Project
 
 | Date | What went wrong | How to avoid next time |
 |------|-----------------|-------------------------|
-| 2026-04-15 | Obsolete final-week materials folder removed from the repo per maintainer request. | Keep private presenter notes outside git if still needed. |
-| 2026-03-27 | Vector DB cohort session needed slide-ready similarity copy + a live Qdrant PDF pipeline. | Added plain-language + worked examples in `vector_db_understanding/vector_databases_technical_deep_dive.md` (Cohort slides section); `qdrant_pdf_pipeline.py` + Streamlit **Qdrant PDF lab** + `docker-compose.yml`; run `docker compose up -d` then `streamlit run streamlit_app.py`. |
-| 2026-03-27 | `mcp/` Oxford plan + deck/slides binaries removed from repo intentionally. | Keep session materials outside git if needed; root `README.md` `mcp/` row updated so links do not 404. |
-| 2026-03-28 | Similarity “cohort slides” math lived only in `vector_databases_technical_deep_dive.md`, not in Streamlit. | Added **`similarity_theory_page.py`** + sidebar **“📐 Similarity math (theory & examples)”** immediately after **Similarity Metrics**; uses `similarity_math.py` in expanders for worked-example checks. |
-| 2026-03-28 | Qdrant PDF lab defaulted to Docker/local URL; cohort uses Qdrant Cloud keys. | **`vector_db_understanding/.env`** + **`vector_db_env.py`** (`QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_COLLECTION`); `.env.example`; lab text clarifies **no LLM/RAG** — embeddings local, Qdrant is storage + scroll. |
-| 2026-03-28 | Needed to wipe Qdrant collection between demo runs. | **`delete_qdrant_collection`** in `qdrant_pdf_pipeline.py`; Streamlit expander **Clear collection** with checkbox + **Delete this collection**. |
-| 2026-03-28 | Presenter wanted talking points per Streamlit page + ingestion code map. | **`vector_db_understanding/README.md`** section **Presenter guide: talking points by Streamlit page** (sidebar order, `streamlit_app.py` router); table maps PDF → Qdrant steps to `qdrant_pdf_pipeline.py` / `vector_db_env.py` / `qdrant_lab.py`. |
-| 2026-03-25 | Oxford standalone bundle (`../oxford_capstone`) initially omitted `.env` (rsync exclude) so the user had to recreate secrets. | When the user explicitly wants parity with their machine, copy `capstone_project/backend/.env` and `mcp/mcp-dungeon/.env` after rsync; document in bundle README that `.env` is sensitive and must stay gitignored if they init a repo. |
 | 2026-03-25 | Agentic RAG replies did not show **which** docs/tickets were used. | **`Citations (retrieval):`** block in compose (`rag_kb_sources` / `rag_db_sources`); LLM finalize prompt requires a **Sources** line using the same labels. |
 | 2026-03-25 | Agentic MCP had no **RAG**; other tracks had KB/DB retrieval. | Pipeline now runs **KB + DB retrieval** after triage (`agentic_rag_retrieval.py`), passes excerpts into `agent_compose_response`, optional **`agentic_reply_finalize`** LLM merge; `mcp_trace` includes `agent_retrieve_kb_db` (`python_rag`). |
 | 2026-03-25 | Agentic MCP **compose** step only said “IT will email you” with no guidance. | Added `backend/chat_demo/compose_support_reply.py` (category + keyword bullets) and mirrored logic in `mcp_server` `agent_compose_response` for real stdio. |
@@ -467,10 +431,10 @@ MIT License - GenAI Cohort 5 Capstone Project
 | 2026-03-25 | Teaching UI used a separate dark theme instead of the capstone landing/chat look. | Reuse `LandingPage.css` patterns (`hero`, `agents-section`, `agent-card`, `cta-button`) and add only small overrides in `TeachingPipeline.css`. |
 | 2026-03-25 | DELETE success could not return `flow_steps` with HTTP 204 (no body). | Teaching DELETE returns **200 + JSON** with `flow_steps` and a note that RFC often uses 204 without a body. |
 | 2026-03-24 | API basics lab looked “washed out”: descriptions, deterministic path, and buttons used slate/grey text. | In `TeachingPipeline.css`, set readable body copy to `#111827` (hero, cards, flow summary/detail, arch controls, method badges); keep gradient primary buttons with white labels. |
-| 2026-03-25 | Main-chat demo plan included a fourth track (“RAG structured” over DB). | Superseded: **`rag_db`** is implemented (`backend/rag/db_retriever.py`, Qdrant `it_support_db`). Oxford may still **skip** that button live for a shorter story. |
+| 2026-03-25 | Main-chat demo plan included a fourth track (“RAG structured” over DB). | Superseded: **`rag_db`** is implemented (`backend/rag/db_retriever.py`, Qdrant `it_support_db`). Oxford may still **skip** that button live for a shorter story (`mcp/OXFORD_MCP_SESSION_PLAN.md`). |
 | 2026-03-25 | (log) | Main `/chat` demo shipped: `backend/chat_demo/` (`tracks`, `plain_llm`, `router`), `ChatRequest.demo_mode` / `demo_track`, `ChatResponse.presenter` / `mcp_trace`, `Chatbot.tsx` demo strip. |
 | 2026-03-25 | `TypeError: Router.__init__() got an unexpected keyword argument 'on_startup'` when starting uvicorn; pip also reported Starlette 1.x vs FastAPI 0.109. | **Pin `starlette>=0.35.0,<0.36.0`** next to `fastapi==0.109.0` in `requirements.txt`. After installing `mcp` or other packages, run `pip install -r backend/requirements.txt` to reconcile. The `_captured_signals` / partial import trace is a **secondary** uvicorn reload crash while imports fail. |
-| 2026-03-25 | Root `README.md` and Oxford session plan still referenced `mcp/sample documents/` after that folder was removed. | List actual `mcp/` files in docs; grep for `sample documents` when pruning folders. |
+| 2026-03-25 | Root `README.md` and `mcp/OXFORD_MCP_SESSION_PLAN.md` still referenced `mcp/sample documents/` after that folder was removed. | List actual `mcp/` files (PDF/PPTX/DOCX/HTML) in docs; grep for `sample documents` when pruning folders. |
 | 2026-03-25 | `ai_agents/langgraph_training_guide.md` used a fixed cohort3 path and `ai_agents_demo` (folder no longer in repo). | Use a generic lab directory (e.g. `~/langgraph_lab`) in setup steps so the guide works for any machine. |
 | 2026-03-25 | `mcp/mcp-dungeon` needed `.env` loading and configurable `ANTHROPIC_MODEL` / optional OpenAI transcript review. | Use `dotenv` + `.env.example`; keep real keys only in `.env` (gitignored). |
 | 2026-03-25 | `load_dotenv()` without a path depended on shell cwd, so `backend/.env` was ignored when running `uvicorn` from `capstone_project`. | Centralize loading in `backend/env_bootstrap.py`; import it from `main.py` and `conftest.py`; set `pythonpath = .` in `pytest.ini`. |
@@ -492,13 +456,13 @@ MIT License - GenAI Cohort 5 Capstone Project
 
 ## 📞 Support
 
-For questions about TDD approach or project setup:
-1. Review `IT_SUPPORT_TDD_SPEC.md`
-2. Check `TDD_PROGRESS.md` for current status
-3. Read test files for behavior documentation
+For setup or behavior questions:
+1. Review `HOW_IT_WORKS.md`
+2. Review `IT_SUPPORT_TDD_SPEC.md`
+3. Read relevant tests under `tests/` for expected behavior
 
 ---
 
-**Last Updated**: 2026-03-11
-**Project Status**: 🔴 RED PHASE - Tests written, implementation pending
-**Next Milestone**: 🟢 GREEN PHASE - Make database tests pass
+**Last Updated**: 2026-03-28
+**Project Status**: Active implementation with passing tests
+**Next Milestone**: Documentation and deployment hardening
