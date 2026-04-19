@@ -1,0 +1,22 @@
+# LangSmith and LangChain dependencies
+langchain==0.3.14
+langchain-openai==0.2.12
+langsmith==0.2.5
+openai==1.58.1
+
+# For metrics visualization
+streamlit==1.41.0
+pandas==2.2.3
+plotly==5.24.1
+
+# Environment and utilities
+python-dotenv==1.0.1
+pydantic==2.10.4
+tiktoken==0.8.0
+
+# For async operations
+asyncio==3.4.3
+aiohttp==3.11.11
+
+# For data storage
+sqlite3-api==2.0.1
